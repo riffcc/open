@@ -28,6 +28,8 @@ it optimises for:
   allowing for buying and selling uniswap style
   and things we can't even imagine yet
 
+it is unproven and we have no idea if it has implications beyond interesting thoughts
+
 ## Assertions
 * People will work even with their most bitter enemies
   if they can both only work on things they find common ground on
