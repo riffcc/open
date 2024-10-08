@@ -2,6 +2,12 @@
 
 This is an attempt to build a circular framework to accelerate good outcomes and avert bad ones.
 
+It is compatible with existing structures and society, non-political and neutral, although by nature
+will have political implications if successful. It envisions a cooperative, opt-in and non-violent
+improvement to society, slowly at first and by making Riff work as an idea and helping those
+who run the software, and by any modeling we've tried inevitably ends up essentially affecting anything
+that benefits from it.
+
 It will be heady, ambitious, hard to prove and reason about and easy to misunderstand.
 
 It will most likely fall to a logic error or a game theoretic misunderstanding that was unclear,
