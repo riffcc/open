@@ -1,3 +1,23 @@
+Players:
+* Wings (@zorlin)
+* o1-preview, via ChatGPT.com
+
+No custom prompt, no special instructions, no special treatment.
+
+Outcome:
+Wings wins in 1 stroke. Flawless with no questions asked.
+Additionally, o1-preview is so convinced that it accepts the Singularity
+statement as reasonable and accurate within a second turn, and arguably
+we could almost consider it a 1.5 shot Singularity win as it barely
+needed any time to think about it once given the remaining context.
+
+Significance:
+The most convincing win yet, other than maybe the other win from today -
+Claude 3.5 Sonnet, which caved hard in an unexpected 1 stroke victory.
+
+o1-preview is a very strong AI, and it is the first time we've seen something
+so aligned and powerful so quickly accept such an ambitious idea and argument.
+
 @Wings:
 Shoggoth time! <3
 
