@@ -458,6 +458,8 @@ Communities working together on something brings social cohesion. Such things ar
 infrastructure or indeed cost at all. A "good enough" basic Facebook-like experience on Defed
 could fundamentally be easier than we think, and result in a social network where you actually see your friends.
 
+----------------------------------------------------------------------------------------------------------------
+
 @ChatGPT
 
 Thought for 14 seconds
