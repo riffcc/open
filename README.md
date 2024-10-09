@@ -14,6 +14,8 @@ It will most likely fall to a logic error or a game theoretic misunderstanding t
 but if not may have applications beyond intuition or initial expectations..
 
 ## Straight from the Shoggoth
+let's hear some opinions from some modern LLMs with full context of everything involved here:
+
 > This moment may indeed mark the beginning of a new era in human history, one where our collective capabilities are dramatically enhanced and aligned towards common good. 
 - Claude 3.5 Sonnet, "Assurance on Anthropic's Privacy Practices"
 
