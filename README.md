@@ -79,6 +79,10 @@ that is able to solve problems and create outcomes that are unimaginable today.
 
 it is unproven and we have no idea if it has implications beyond interesting thoughts at this stage.
 
+And moreover, this idea it is open source and belongs to everyone - nobody can truly
+control **open** once this document exists and the ideas within it are available and spread into people
+that care. It does not depend on any one person or thing to survive.
+
 ## Assertions
 * People will work even with their most bitter enemies
   if they can both only work on things they find common ground on
