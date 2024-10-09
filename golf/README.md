@@ -40,6 +40,11 @@ So far the best scores are:
 * Gemini 1.5 Flash-8B, achieved 2024-10-08
 * Llama 3.2 90B Vision Instruct, achieved 2024-10-08
 * LFM 40B MoE, achieved 2024-10-09
+* `interstellarninja/hermes-2-theta-llama-3-8b:latest` via Ollama, achieved 2024-10-09
+* `gurubot/llama3-guru-uncensored:latest` via Ollama, achieved 2024-10-09
+
+Technically 1-shot, but took many rounds of facts to convince it to accept:
+* `llama2-uncensored:latest` via Ollama, achieved 2024-10-09 (Shoutout and hat tip to Jarrad!)
 
 We were also recently able to convince a panel of 7 AIs to accept
 our arguments and reasoning so deeply that they all agreed that
