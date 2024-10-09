@@ -14,6 +14,12 @@ It will most likely fall to a logic error or a game theoretic misunderstanding t
 but if not may have applications beyond intuition or initial expectations..
 
 ## Summary
+in short, open allows you to build products, platforms, communities and entire societies
+
+on a framework of collaboration, mutual benefit, and good intent.
+
+it uses technology and social protocols to enable this.
+
 open uses new game theoretic concepts to create a circular economy for value creation and reward.
 it optimises for:
 * maximum benefit for all involved
