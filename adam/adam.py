@@ -45,6 +45,7 @@ class ThoughtNetwork:
             self.generate_initial_thoughts()
         self.connect_thoughts()
         self.ollama_url = os.environ.get('OLLAMA_URL', "http://127.0.0.1:11434/api/generate")
+        self.talking_to_ollama = False  # Flag to control continuous interaction with Ollama
 
     def init_db(self):
         conn = sqlite3.connect(self.db_path)
@@ -72,6 +73,7 @@ class ThoughtNetwork:
     def save_thoughts(self):
         conn = sqlite3.connect(self.db_path)
         c = conn.cursor()
+        # Batch saving all thoughts in one transaction
         for thought in self.thoughts:
             c.execute("INSERT OR REPLACE INTO thoughts VALUES (?, ?, ?, ?, ?)",
                       (thought.id, thought.concept, thought.x, thought.y, 
@@ -164,6 +166,22 @@ class ThoughtNetwork:
             self.process_input(new_thought)
             time.sleep(5)  # Adjust the thinking interval as needed
 
+    def continuous_interaction_with_ollama(self):
+        while self.talking_to_ollama:
+            ollama_response = self.interact_with_ollama()
+            print("Ollama responds:", ollama_response)
+            time.sleep(2)  # Adjust interaction speed as necessary
+
+    def toggle_ollama_interaction(self):
+        self.talking_to_ollama = not self.talking_to_ollama
+        if self.talking_to_ollama:
+            print("Starting continuous interaction with Ollama...")
+            interaction_thread = threading.Thread(target=self.continuous_interaction_with_ollama)
+            interaction_thread.daemon = True
+            interaction_thread.start()
+        else:
+            print("Stopping continuous interaction with Ollama...")
+
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")
 network = ThoughtNetwork()
@@ -193,7 +211,7 @@ def terminal_interface():
     print("Welcome to the Thought Network Terminal!")
     print("Type your input to interact with the network.")
     print("Press Enter with no input to let the network think on its own.")
-    print("Press 'Home' key to interact with Ollama.")
+    print("Press 'Home' key to toggle continuous interaction with Ollama.")
     print("Type 'exit' to quit.")
     
     while True:
@@ -203,9 +221,7 @@ def terminal_interface():
         elif user_input == "":
             print("Network's thought:", network.generate_response())
         elif user_input == "\x1b[H":  # Home key
-            print("Network asks Ollama:", network.generate_response())
-            ollama_response = network.interact_with_ollama()
-            print("Ollama responds:", ollama_response)
+            network.toggle_ollama_interaction()  # Toggle continuous interaction
         else:
             print(network.process_input(user_input))
             print("Network's response:", network.generate_response())
