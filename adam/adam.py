@@ -50,7 +50,7 @@ class ThoughtNetwork:
             self.generate_initial_thoughts()
         self.connect_thoughts()
         self.ollama_url = os.environ.get('OLLAMA_URL', "http://127.0.0.1:11434/api/generate")
-        self.ollama_model = "llama3"
+        self.ollama_model = "gemma2"
 
     def init_db(self):
         conn = sqlite3.connect(self.db_path)

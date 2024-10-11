@@ -41,3 +41,14 @@
 2024-10-12 00:37:04,501 - 127.0.0.1 - - [12/Oct/2024 00:37:04] "GET /socket.io/?EIO=4&transport=polling&t=P9zyMBn&sid=qcavXEGT50dDq-BHAAAA HTTP/1.1" 200 -
 2024-10-12 00:37:05,973 - Network asks Ollama: Ollama learning.
 2024-10-12 00:37:07,798 - Ollama responds: I’m having a little trouble connecting right now, but we’ll figure it out together!
+2024-10-12 00:39:37,578 - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2024-10-12 00:39:37,578 - [33mPress CTRL+C to quit[0m
+2024-10-12 00:39:38,535 - Network asks Ollama: To to growing.
+2024-10-12 00:39:39,615 - Ollama responds: I’m having a little trouble connecting right now, but we’ll figure it out together!
+2024-10-12 00:39:41,451 - Network asks Ollama: Hello generate error connect world.
+2024-10-12 00:39:42,282 - Ollama responds: I’m having a little trouble connecting right now, but we’ll figure it out together!
+2024-10-12 00:39:43,493 - 127.0.0.1 - - [12/Oct/2024 00:39:43] "GET /socket.io/?EIO=4&transport=polling&t=P9zyz02 HTTP/1.1" 200 -
+2024-10-12 00:39:43,499 - 127.0.0.1 - - [12/Oct/2024 00:39:43] "POST /socket.io/?EIO=4&transport=polling&t=P9zyz08&sid=9xAydAM4TUTjcMEFAAAA HTTP/1.1" 200 -
+2024-10-12 00:39:43,501 - 127.0.0.1 - - [12/Oct/2024 00:39:43] "GET /socket.io/?EIO=4&transport=polling&t=P9zyz09&sid=9xAydAM4TUTjcMEFAAAA HTTP/1.1" 200 -
+2024-10-12 00:39:43,503 - 127.0.0.1 - - [12/Oct/2024 00:39:43] "GET /socket.io/?EIO=4&transport=polling&t=P9zyz0E&sid=9xAydAM4TUTjcMEFAAAA HTTP/1.1" 200 -
