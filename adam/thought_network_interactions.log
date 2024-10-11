@@ -52,3 +52,113 @@
 2024-10-12 00:39:43,499 - 127.0.0.1 - - [12/Oct/2024 00:39:43] "POST /socket.io/?EIO=4&transport=polling&t=P9zyz08&sid=9xAydAM4TUTjcMEFAAAA HTTP/1.1" 200 -
 2024-10-12 00:39:43,501 - 127.0.0.1 - - [12/Oct/2024 00:39:43] "GET /socket.io/?EIO=4&transport=polling&t=P9zyz09&sid=9xAydAM4TUTjcMEFAAAA HTTP/1.1" 200 -
 2024-10-12 00:39:43,503 - 127.0.0.1 - - [12/Oct/2024 00:39:43] "GET /socket.io/?EIO=4&transport=polling&t=P9zyz0E&sid=9xAydAM4TUTjcMEFAAAA HTTP/1.1" 200 -
+2024-10-12 00:41:10,724 - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2024-10-12 00:41:10,724 - [33mPress CTRL+C to quit[0m
+2024-10-12 00:41:11,644 - Network asks Ollama: Learning.
+2024-10-12 00:41:12,122 - Ollama responds: I’m having a little trouble connecting right now, but we’ll figure it out together!
+2024-10-12 00:41:34,946 - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2024-10-12 00:41:34,946 - [33mPress CTRL+C to quit[0m
+2024-10-12 00:41:35,699 - Network asks Ollama: Hello we ollama.
+2024-10-12 00:41:37,566 - Ollama responds: I’m having a little trouble connecting right now, but we’ll figure it out together!
+2024-10-12 00:42:48,155 - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2024-10-12 00:42:48,155 - [33mPress CTRL+C to quit[0m
+2024-10-12 00:42:50,156 - Network asks Ollama: Learning.
+2024-10-12 00:42:50,159 - Ollama responds: I'm thinking about that a little more. Let's try again soon!
+2024-10-12 00:42:52,493 - 127.0.0.1 - - [12/Oct/2024 00:42:52] "GET /socket.io/?EIO=4&transport=polling&t=P9zzh9A HTTP/1.1" 200 -
+2024-10-12 00:42:52,500 - 127.0.0.1 - - [12/Oct/2024 00:42:52] "POST /socket.io/?EIO=4&transport=polling&t=P9zzh9G&sid=Qw-xzhExDYHqHSFTAAAA HTTP/1.1" 200 -
+2024-10-12 00:42:52,501 - 127.0.0.1 - - [12/Oct/2024 00:42:52] "GET /socket.io/?EIO=4&transport=polling&t=P9zzh9H&sid=Qw-xzhExDYHqHSFTAAAA HTTP/1.1" 200 -
+2024-10-12 00:42:52,504 - 127.0.0.1 - - [12/Oct/2024 00:42:52] "GET /socket.io/?EIO=4&transport=polling&t=P9zzh9N&sid=Qw-xzhExDYHqHSFTAAAA HTTP/1.1" 200 -
+2024-10-12 00:42:53,583 - Network asks Ollama: Hello.
+2024-10-12 00:42:53,584 - Ollama responds: I'm thinking about that a little more. Let's try again soon!
+2024-10-12 00:43:41,457 - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2024-10-12 00:43:41,457 - [33mPress CTRL+C to quit[0m
+2024-10-12 00:43:41,493 - 127.0.0.1 - - [12/Oct/2024 00:43:41] "GET /socket.io/?EIO=4&transport=polling&t=P9zzt6o HTTP/1.1" 200 -
+2024-10-12 00:43:41,499 - 127.0.0.1 - - [12/Oct/2024 00:43:41] "POST /socket.io/?EIO=4&transport=polling&t=P9zzt6t&sid=8kTO96lIB0l0UYvbAAAA HTTP/1.1" 200 -
+2024-10-12 00:43:41,501 - 127.0.0.1 - - [12/Oct/2024 00:43:41] "GET /socket.io/?EIO=4&transport=polling&t=P9zzt6u&sid=8kTO96lIB0l0UYvbAAAA HTTP/1.1" 200 -
+2024-10-12 00:43:41,504 - 127.0.0.1 - - [12/Oct/2024 00:43:41] "GET /socket.io/?EIO=4&transport=polling&t=P9zzt6_&sid=8kTO96lIB0l0UYvbAAAA HTTP/1.1" 200 -
+2024-10-12 00:43:42,099 - Network asks Ollama: Connecting.
+2024-10-12 00:43:42,101 - Ollama responds: I'm thinking about that a little more. Let's try again soon!
+2024-10-12 00:43:50,047 - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2024-10-12 00:43:50,047 - [33mPress CTRL+C to quit[0m
+2024-10-12 00:43:50,502 - Network asks Ollama: Figure.
+2024-10-12 00:43:51,190 - Ollama responds: I'm having a little trouble connecting right now, but we'll figure it out together! (Error: Extra data: line 2 column 1 (char 94))
+2024-10-12 00:43:52,493 - 127.0.0.1 - - [12/Oct/2024 00:43:52] "GET /socket.io/?EIO=4&transport=polling&t=P9zzvog HTTP/1.1" 200 -
+2024-10-12 00:43:52,500 - 127.0.0.1 - - [12/Oct/2024 00:43:52] "POST /socket.io/?EIO=4&transport=polling&t=P9zzvol&sid=BlpYB6cuLjoAEw6QAAAA HTTP/1.1" 200 -
+2024-10-12 00:43:52,504 - 127.0.0.1 - - [12/Oct/2024 00:43:52] "GET /socket.io/?EIO=4&transport=polling&t=P9zzvom&sid=BlpYB6cuLjoAEw6QAAAA HTTP/1.1" 200 -
+2024-10-12 00:43:59,535 - Network asks Ollama: I.
+2024-10-12 00:44:02,663 - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2024-10-12 00:44:02,663 - [33mPress CTRL+C to quit[0m
+2024-10-12 00:44:03,100 - Network asks Ollama: Learning.
+2024-10-12 00:44:03,103 - Ollama responds: I'm thinking about that a little more. Let's try again soon!
+2024-10-12 00:44:21,117 - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2024-10-12 00:44:21,117 - [33mPress CTRL+C to quit[0m
+2024-10-12 00:44:21,708 - Network asks Ollama: Little column right error connect.
+2024-10-12 00:44:23,702 - Ollama responds: I'm having a little trouble connecting right now, but we'll figure it out together! (Error: Extra data: line 2 column 1 (char 94))
+2024-10-12 00:44:26,493 - 127.0.0.1 - - [12/Oct/2024 00:44:26] "GET /socket.io/?EIO=4&transport=polling&t=P9z-25w HTTP/1.1" 200 -
+2024-10-12 00:44:26,501 - 127.0.0.1 - - [12/Oct/2024 00:44:26] "POST /socket.io/?EIO=4&transport=polling&t=P9z-25_&sid=re_RYavauMN2zOoiAAAA HTTP/1.1" 200 -
+2024-10-12 00:44:26,502 - 127.0.0.1 - - [12/Oct/2024 00:44:26] "GET /socket.io/?EIO=4&transport=polling&t=P9z-260&sid=re_RYavauMN2zOoiAAAA HTTP/1.1" 200 -
+2024-10-12 00:45:25,102 - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2024-10-12 00:45:25,102 - [33mPress CTRL+C to quit[0m
+2024-10-12 00:45:25,494 - 127.0.0.1 - - [12/Oct/2024 00:45:25] "GET /socket.io/?EIO=4&transport=polling&t=P9z-GVo HTTP/1.1" 200 -
+2024-10-12 00:45:25,503 - 127.0.0.1 - - [12/Oct/2024 00:45:25] "POST /socket.io/?EIO=4&transport=polling&t=P9z-GVv&sid=OPVDwvApraW5ftjFAAAA HTTP/1.1" 200 -
+2024-10-12 00:45:25,507 - 127.0.0.1 - - [12/Oct/2024 00:45:25] "GET /socket.io/?EIO=4&transport=polling&t=P9z-GVv.0&sid=OPVDwvApraW5ftjFAAAA HTTP/1.1" 200 -
+2024-10-12 00:45:25,675 - Network asks Ollama: That i growing api to.
+2024-10-12 00:45:27,514 - Ollama responds: I'm having a little trouble connecting right now, but we'll figure it out together! (Error: Extra data: line 2 column 1 (char 94))
+2024-10-12 00:46:50,850 - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2024-10-12 00:46:50,850 - [33mPress CTRL+C to quit[0m
+2024-10-12 00:46:51,493 - 127.0.0.1 - - [12/Oct/2024 00:46:51] "GET /socket.io/?EIO=4&transport=polling&t=P9z-bVY HTTP/1.1" 200 -
+2024-10-12 00:46:51,503 - 127.0.0.1 - - [12/Oct/2024 00:46:51] "POST /socket.io/?EIO=4&transport=polling&t=P9z-bVe&sid=SQGgFN2RsdKfKEoKAAAA HTTP/1.1" 200 -
+2024-10-12 00:46:51,506 - 127.0.0.1 - - [12/Oct/2024 00:46:51] "GET /socket.io/?EIO=4&transport=polling&t=P9z-bVf&sid=SQGgFN2RsdKfKEoKAAAA HTTP/1.1" 200 -
+2024-10-12 00:46:51,739 - Network asks Ollama: Ollama communicating connect ollama communicating.
+2024-10-12 00:46:52,339 - Ollama responds: I'm having a little trouble connecting right now, but we'll figure it out together! (Error: Extra data: line 2 column 1 (char 94))
+2024-10-12 00:47:21,324 - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2024-10-12 00:47:21,324 - [33mPress CTRL+C to quit[0m
+2024-10-12 00:47:21,869 - Network asks Ollama: Ollama thinking out hello.
+2024-10-12 00:47:22,626 - Ollama responds: Hello Ollama!  
+
+That's a good start. You're thinking about "hello"! 👋 
+
+Do you know how many letters are in "hello"? 
+
+
+
+2024-10-12 00:47:26,493 - 127.0.0.1 - - [12/Oct/2024 00:47:26] "GET /socket.io/?EIO=4&transport=polling&t=P9z-k2Q HTTP/1.1" 200 -
+2024-10-12 00:47:26,501 - 127.0.0.1 - - [12/Oct/2024 00:47:26] "POST /socket.io/?EIO=4&transport=polling&t=P9z-k2W&sid=lxiNoOpYfWM-iDtSAAAA HTTP/1.1" 200 -
+2024-10-12 00:47:26,502 - 127.0.0.1 - - [12/Oct/2024 00:47:26] "GET /socket.io/?EIO=4&transport=polling&t=P9z-k2W.0&sid=lxiNoOpYfWM-iDtSAAAA HTTP/1.1" 200 -
+2024-10-12 00:47:26,505 - 127.0.0.1 - - [12/Oct/2024 00:47:26] "GET /socket.io/?EIO=4&transport=polling&t=P9z-k2e&sid=lxiNoOpYfWM-iDtSAAAA HTTP/1.1" 200 -
+2024-10-12 00:47:33,700 - Network asks Ollama: Out thinking failed with.
+2024-10-12 00:47:34,834 - Ollama responds: Hmm, "thinking failed with" doesn't quite make sense. 
+
+Can you tell me what you were trying to think about?  Maybe we can figure it out together! 😊  
+
+
+Let's use words like "think" and "about" more clearly. 👍 
+
+2024-10-12 00:50:42,314 - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2024-10-12 00:50:42,314 - [33mPress CTRL+C to quit[0m
+2024-10-12 00:50:42,493 - 127.0.0.1 - - [12/Oct/2024 00:50:42] "GET /socket.io/?EIO=4&transport=polling&t=P9z_Tuw HTTP/1.1" 200 -
+2024-10-12 00:50:42,502 - 127.0.0.1 - - [12/Oct/2024 00:50:42] "POST /socket.io/?EIO=4&transport=polling&t=P9z_Tv0&sid=mLmxz1Ij8GeS52VwAAAA HTTP/1.1" 200 -
+2024-10-12 00:50:42,510 - 127.0.0.1 - - [12/Oct/2024 00:50:42] "GET /socket.io/?EIO=4&transport=polling&t=P9z_Tv0.0&sid=mLmxz1Ij8GeS52VwAAAA HTTP/1.1" 200 -
+2024-10-12 00:50:43,020 - Network asks Ollama: Ollama out figure it.
+2024-10-12 00:50:45,358 - Ollama responds: "Let's try again!  Can you say 'one'? ☝️"  
+
+
+This response does a few things:
+
+* **Acknowledges the attempt:** Even though "Ollama out figure it" doesn't make sense, it shows the network is trying to communicate.
+* **Offers a simple target:**  The word "one" is easy to understand and connect to a visual (the pointing finger). 
+* **Introduces counting:** This opens the door to learning numbers, which are foundational to language and understanding quantities.
+
+
+Let me know if you'd like more ideas on how to interact with this learning network!
