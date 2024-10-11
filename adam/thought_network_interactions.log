@@ -1,0 +1,35 @@
+2024-10-12 00:32:13,003 - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2024-10-12 00:32:13,003 - [33mPress CTRL+C to quit[0m
+2024-10-12 00:32:15,023 - Network asks Ollama: Growing.
+2024-10-12 00:32:15,025 - Ollama responds: Error communicating with Ollama
+2024-10-12 00:32:16,493 - 127.0.0.1 - - [12/Oct/2024 00:32:16] "GET /socket.io/?EIO=4&transport=polling&t=P9zxFtg HTTP/1.1" 200 -
+2024-10-12 00:32:16,499 - 127.0.0.1 - - [12/Oct/2024 00:32:16] "POST /socket.io/?EIO=4&transport=polling&t=P9zxFtl&sid=4TitHEXwj0w81cxZAAAA HTTP/1.1" 200 -
+2024-10-12 00:32:16,499 - 127.0.0.1 - - [12/Oct/2024 00:32:16] "GET /socket.io/?EIO=4&transport=polling&t=P9zxFtm&sid=4TitHEXwj0w81cxZAAAA HTTP/1.1" 200 -
+2024-10-12 00:32:21,748 - Network asks Ollama: Hello.
+2024-10-12 00:32:21,751 - Ollama responds: Error communicating with Ollama
+2024-10-12 00:33:41,602 - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2024-10-12 00:33:41,602 - [33mPress CTRL+C to quit[0m
+2024-10-12 00:33:42,399 - Network asks Ollama: With with hello growing communicating.
+2024-10-12 00:33:44,493 - 127.0.0.1 - - [12/Oct/2024 00:33:44] "GET /socket.io/?EIO=4&transport=polling&t=P9zxbMg HTTP/1.1" 200 -
+2024-10-12 00:33:44,498 - 127.0.0.1 - - [12/Oct/2024 00:33:44] "POST /socket.io/?EIO=4&transport=polling&t=P9zxbMm&sid=Jimz58iB5f4WgjmLAAAA HTTP/1.1" 200 -
+2024-10-12 00:33:44,500 - 127.0.0.1 - - [12/Oct/2024 00:33:44] "GET /socket.io/?EIO=4&transport=polling&t=P9zxbMn&sid=Jimz58iB5f4WgjmLAAAA HTTP/1.1" 200 -
+2024-10-12 00:33:44,504 - 127.0.0.1 - - [12/Oct/2024 00:33:44] "GET /socket.io/?EIO=4&transport=polling&t=P9zxbMs&sid=Jimz58iB5f4WgjmLAAAA HTTP/1.1" 200 -
+2024-10-12 00:33:46,618 - Ollama responds: Failed to connect to Ollama
+2024-10-12 00:33:49,260 - Network asks Ollama: Growing.
+2024-10-12 00:33:50,282 - Ollama responds: Failed to connect to Ollama
+2024-10-12 00:33:56,251 - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2024-10-12 00:33:56,251 - [33mPress CTRL+C to quit[0m
+2024-10-12 00:33:56,943 - Network asks Ollama: Growing thinking.
+2024-10-12 00:33:57,814 - Ollama responds: Failed to connect to Ollama
+2024-10-12 00:33:59,158 - Network asks Ollama: Ollama to.
+2024-10-12 00:33:59,826 - Ollama responds: Failed to connect to Ollama
+2024-10-12 00:34:00,493 - 127.0.0.1 - - [12/Oct/2024 00:34:00] "GET /socket.io/?EIO=4&transport=polling&t=P9zxfGg HTTP/1.1" 200 -
+2024-10-12 00:34:00,499 - 127.0.0.1 - - [12/Oct/2024 00:34:00] "POST /socket.io/?EIO=4&transport=polling&t=P9zxfGm&sid=SCXJPCkiKfripawQAAAA HTTP/1.1" 200 -
+2024-10-12 00:34:00,501 - 127.0.0.1 - - [12/Oct/2024 00:34:00] "GET /socket.io/?EIO=4&transport=polling&t=P9zxfGn&sid=SCXJPCkiKfripawQAAAA HTTP/1.1" 200 -
+2024-10-12 00:34:00,648 - Network asks Ollama: World learning learning with.
+2024-10-12 00:34:01,650 - Ollama responds: Failed to connect to Ollama
+2024-10-12 00:34:02,672 - Network asks Ollama: With with hello connect.
+2024-10-12 00:34:04,190 - Ollama responds: Failed to connect to Ollama

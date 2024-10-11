@@ -11,6 +11,11 @@ from flask import Flask, render_template, send_from_directory
 from flask_socketio import SocketIO
 import requests
 import os
+import logging
+
+# Configure logging to a file
+logging.basicConfig(filename='thought_network_interactions.log', level=logging.INFO, 
+                    format='%(asctime)s - %(message)s')
 
 class Thought:
     def __init__(self, id, x, y, concept=""):
@@ -45,7 +50,7 @@ class ThoughtNetwork:
             self.generate_initial_thoughts()
         self.connect_thoughts()
         self.ollama_url = os.environ.get('OLLAMA_URL', "http://127.0.0.1:11434/api/generate")
-        self.talking_to_ollama = False  # Flag to control continuous interaction with Ollama
+        self.ollama_model = "llama3"
 
     def init_db(self):
         conn = sqlite3.connect(self.db_path)
@@ -73,7 +78,6 @@ class ThoughtNetwork:
     def save_thoughts(self):
         conn = sqlite3.connect(self.db_path)
         c = conn.cursor()
-        # Batch saving all thoughts in one transaction
         for thought in self.thoughts:
             c.execute("INSERT OR REPLACE INTO thoughts VALUES (?, ?, ?, ?, ?)",
                       (thought.id, thought.concept, thought.x, thought.y, 
@@ -136,28 +140,29 @@ class ThoughtNetwork:
         response_length = random.randint(1, 5)  # Variable response length
         selected_thoughts = random.sample(self.thoughts, response_length)
         response = " ".join([t.concept for t in selected_thoughts])
-        return response.capitalize()
+        return response.capitalize() + "."
 
     def ask_ollama(self, prompt):
         data = {
-            "model": "gemma2",
-            "prompt": prompt,
-            "stream": False
+            "model": self.ollama_model,
+            "prompt": prompt
         }
         try:
             response = requests.post(self.ollama_url, json=data, timeout=10)
             if response.status_code == 200:
-                return response.json()['response']
+                return response.json().get('response', 'Hmm, I couldn’t quite understand that, but keep trying!')
             else:
-                return "Error communicating with Ollama"
+                # Error response, but send something reassuring back to the network
+                return "I’m thinking about that a little more. Let’s try again soon!"
         except requests.exceptions.RequestException:
-            return "Failed to connect to Ollama"
+            # In case of connection errors, provide a calm and reassuring message
+            return "I’m having a little trouble connecting right now, but we’ll figure it out together!"
 
     def interact_with_ollama(self):
         prompt = self.generate_response()
-        print(f"Network asks Ollama: {prompt}")  # Print what the network is sending to Ollama
+        logging.info(f"Network asks Ollama: {prompt}")  # Log the prompt to Ollama
         ollama_response = self.ask_ollama(f"You are talking to a simple thought network that is learning language. It said: '{prompt}'. Please respond in a way that might help it learn language, counting, or the alphabet. Keep your response simple and gentle.")
-        print(f"Ollama responds: {ollama_response}")  # Print what Ollama responds
+        logging.info(f"Ollama responds: {ollama_response}")  # Log Ollama's response
         self.process_input(ollama_response)
         return ollama_response
 
@@ -167,22 +172,6 @@ class ThoughtNetwork:
             new_thought = self.generate_response()
             self.process_input(new_thought)
             time.sleep(5)  # Adjust the thinking interval as needed
-
-    def continuous_interaction_with_ollama(self):
-        while self.talking_to_ollama:
-            ollama_response = self.interact_with_ollama()
-            print("Ollama responds:", ollama_response)
-            time.sleep(2)  # Adjust interaction speed as necessary
-
-    def toggle_ollama_interaction(self):
-        self.talking_to_ollama = not self.talking_to_ollama
-        if self.talking_to_ollama:
-            print("Starting continuous interaction with Ollama...")
-            interaction_thread = threading.Thread(target=self.continuous_interaction_with_ollama)
-            interaction_thread.daemon = True
-            interaction_thread.start()
-        else:
-            print("Stopping continuous interaction with Ollama...")
 
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")
@@ -207,13 +196,13 @@ def update_network():
     while True:
         network.update_positions()
         emit_network_state()
-        time.sleep(1)  # Reduced update frequency for stability
+        time.sleep(0.1)  # Reduced update frequency for stability
 
 def terminal_interface():
     print("Welcome to the Thought Network Terminal!")
     print("Type your input to interact with the network.")
     print("Press Enter with no input to let the network think on its own.")
-    print("Press 'Home' key to toggle continuous interaction with Ollama.")
+    print("Press 'Home' key to interact with Ollama.")
     print("Type 'exit' to quit.")
     
     while True:
@@ -223,7 +212,9 @@ def terminal_interface():
         elif user_input == "":
             print("Network's thought:", network.generate_response())
         elif user_input == "\x1b[H":  # Home key
-            network.toggle_ollama_interaction()  # Toggle continuous interaction
+            print("Network asks Ollama:", network.generate_response())
+            ollama_response = network.interact_with_ollama()
+            print("Ollama responds:", ollama_response)
         else:
             print(network.process_input(user_input))
             print("Network's response:", network.generate_response())
