@@ -3,75 +3,105 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Thought Network Visualization</title>
+    <title>Thought Network</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
-    <script src="https://d3js.org/d3.v6.min.js"></script>
     <style>
-        body { margin: 0; overflow: hidden; }
-        svg { width: 100vw; height: 100vh; }
+        body, html {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+        }
     </style>
 </head>
 <body>
-    <svg id="network"></svg>
     <script>
-        const socket = io();
-        const svg = d3.select('#network');
-        const width = window.innerWidth;
-        const height = window.innerHeight;
+        let thoughts = [];
+        let zoomFactor = 1;
+        let offsetX = 0, offsetY = 0;
+        let dragStartX, dragStartY;
+        let isDragging = false;
 
-        let simulation = d3.forceSimulation()
-            .force("link", d3.forceLink().id(d => d.id))
-            .force("charge", d3.forceManyBody().strength(-300))
-            .force("center", d3.forceCenter(width / 2, height / 2));
+        function setup() {
+            createCanvas(windowWidth, windowHeight);
+            let socket = io.connect(window.location.origin);
 
-        socket.on('network_update', function(data) {
-            const nodes = data.thoughts;
-            const links = nodes.flatMap(node => 
-                node.connections.map(targetId => ({
-                    source: node.id,
-                    target: targetId
-                }))
-            );
+            socket.on('network_update', (data) => {
+                thoughts = data.thoughts;
+            });
 
-            svg.selectAll("*").remove();
+            // Panning with mouse drag
+            canvas.addEventListener('mousedown', (event) => {
+                dragStartX = event.clientX;
+                dragStartY = event.clientY;
+                isDragging = true;
+            });
 
-            const link = svg.append("g")
-                .selectAll("line")
-                .data(links)
-                .join("line")
-                .attr("stroke", "#999")
-                .attr("stroke-opacity", 0.6);
+            canvas.addEventListener('mouseup', () => {
+                isDragging = false;
+            });
 
-            const node = svg.append("g")
-                .selectAll("g")
-                .data(nodes)
-                .join("g");
+            canvas.addEventListener('mousemove', (event) => {
+                if (isDragging) {
+                    offsetX += (event.clientX - dragStartX) / zoomFactor;
+                    offsetY += (event.clientY - dragStartY) / zoomFactor;
+                    dragStartX = event.clientX;
+                    dragStartY = event.clientY;
+                }
+            });
 
-            node.append("circle")
-                .attr("r", d => d.radius)
-                .attr("fill", d => d.color);
+            // Zooming with mouse wheel
+            canvas.addEventListener('wheel', (event) => {
+                let zoomSensitivity = 0.001;
+                let zoomDelta = event.deltaY * zoomSensitivity;
+                let newZoom = zoomFactor * (1 - zoomDelta);
 
-            node.append("text")
-                .text(d => d.concept)
-                .attr("text-anchor", "middle")
-                .attr("dy", ".35em")
-                .attr("fill", "black");
+                // Zoom about the mouse position
+                let mx = (mouseX - offsetX) / zoomFactor;
+                let my = (mouseY - offsetY) / zoomFactor;
 
-            simulation.nodes(nodes).on("tick", ticked);
-            simulation.force("link").links(links);
-            simulation.alpha(1).restart();
+                offsetX -= mx * (newZoom - zoomFactor);
+                offsetY -= my * (newZoom - zoomFactor);
 
-            function ticked() {
-                link
-                    .attr("x1", d => d.source.x)
-                    .attr("y1", d => d.source.y)
-                    .attr("x2", d => d.target.x)
-                    .attr("y2", d => d.target.y);
+                zoomFactor = newZoom;
+            });
+        }
 
-                node
-                    .attr("transform", d => `translate(${d.x},${d.y})`);
+        function draw() {
+            background(255);
+            scale(zoomFactor);
+            translate(offsetX, offsetY);
+            drawThoughts();
+        }
+
+        function drawThoughts() {
+            for (let thought of thoughts) {
+                // Draw connections
+                for (let connectionId of thought.connections) {
+                    let target = thoughts.find(t => t.id === connectionId);
+                    if (target) {
+                        stroke(0, 100);
+                        line(thought.x, thought.y, target.x, target.y);
+                    }
+                }
+
+                // Draw thoughts
+                fill(thought.color);
+                noStroke();
+                ellipse(thought.x, thought.y, thought.radius * 2);
+                
+                fill(0);
+                textAlign(CENTER, CENTER);
+                text(thought.concept, thought.x, thought.y);
             }
-        });
+        }
+
+        function windowResized() {
+            resizeCanvas(windowWidth, windowHeight);
+        }
     </script>
 </body>
 </html>

@@ -44,8 +44,7 @@ class ThoughtNetwork:
         if not self.thoughts:
             self.generate_initial_thoughts()
         self.connect_thoughts()
-        self.ollama_url = os.environ.get('OLLAMA_URL', "http://localhost:11434/api/generate")
-        self.ollama_model = "llama2"
+        self.ollama_url = os.environ.get('OLLAMA_URL', "http://127.0.0.1:11434/api/generate")
 
     def init_db(self):
         conn = sqlite3.connect(self.db_path)
@@ -135,12 +134,13 @@ class ThoughtNetwork:
         response_length = random.randint(1, 5)  # Variable response length
         selected_thoughts = random.sample(self.thoughts, response_length)
         response = " ".join([t.concept for t in selected_thoughts])
-        return response.capitalize() + "."
+        return response.capitalize()
 
     def ask_ollama(self, prompt):
         data = {
-            "model": self.ollama_model,
-            "prompt": prompt
+            "model": "gemma2",
+            "prompt": prompt,
+            "stream": False
         }
         try:
             response = requests.post(self.ollama_url, json=data, timeout=10)
@@ -187,7 +187,7 @@ def update_network():
     while True:
         network.update_positions()
         emit_network_state()
-        time.sleep(0.1)  # Reduced update frequency for stability
+        time.sleep(1)  # Reduced update frequency for stability
 
 def terminal_interface():
     print("Welcome to the Thought Network Terminal!")
