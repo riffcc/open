@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thought Network Visualization</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <style>
+        body { margin: 0; overflow: hidden; }
+        svg { width: 100vw; height: 100vh; }
+    </style>
+</head>
+<body>
+    <svg id="network"></svg>
+    <script>
+        const socket = io();
+        const svg = d3.select('#network');
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+
+        let simulation = d3.forceSimulation()
+            .force("link", d3.forceLink().id(d => d.id))
+            .force("charge", d3.forceManyBody().strength(-300))
+            .force("center", d3.forceCenter(width / 2, height / 2));
+
+        socket.on('network_update', function(data) {
+            const nodes = data.thoughts;
+            const links = nodes.flatMap(node => 
+                node.connections.map(targetId => ({
+                    source: node.id,
+                    target: targetId
+                }))
+            );
+
+            svg.selectAll("*").remove();
+
+            const link = svg.append("g")
+                .selectAll("line")
+                .data(links)
+                .join("line")
+                .attr("stroke", "#999")
+                .attr("stroke-opacity", 0.6);
+
+            const node = svg.append("g")
+                .selectAll("g")
+                .data(nodes)
+                .join("g");
+
+            node.append("circle")
+                .attr("r", d => d.radius)
+                .attr("fill", d => d.color);
+
+            node.append("text")
+                .text(d => d.concept)
+                .attr("text-anchor", "middle")
+                .attr("dy", ".35em")
+                .attr("fill", "black");
+
+            simulation.nodes(nodes).on("tick", ticked);
+            simulation.force("link").links(links);
+            simulation.alpha(1).restart();
+
+            function ticked() {
+                link
+                    .attr("x1", d => d.source.x)
+                    .attr("y1", d => d.source.y)
+                    .attr("x2", d => d.target.x)
+                    .attr("y2", d => d.target.y);
+
+                node
+                    .attr("transform", d => `translate(${d.x},${d.y})`);
+            }
+        });
+    </script>
+</body>
+</html>
