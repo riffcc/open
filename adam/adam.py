@@ -155,7 +155,9 @@ class ThoughtNetwork:
 
     def interact_with_ollama(self):
         prompt = self.generate_response()
+        print(f"Network asks Ollama: {prompt}")  # Print what the network is sending to Ollama
         ollama_response = self.ask_ollama(f"You are talking to a simple thought network that is learning language. It said: '{prompt}'. Please respond in a way that might help it learn language, counting, or the alphabet. Keep your response simple and gentle.")
+        print(f"Ollama responds: {ollama_response}")  # Print what Ollama responds
         self.process_input(ollama_response)
         return ollama_response
 
