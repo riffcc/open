@@ -9,6 +9,8 @@ import threading
 import time
 from flask import Flask, render_template, send_from_directory
 from flask_socketio import SocketIO
+import requests
+import os
 
 class Thought:
     def __init__(self, id, x, y, concept=""):
@@ -42,6 +44,8 @@ class ThoughtNetwork:
         if not self.thoughts:
             self.generate_initial_thoughts()
         self.connect_thoughts()
+        self.ollama_url = os.environ.get('OLLAMA_URL', "http://localhost:11434/api/generate")
+        self.ollama_model = "llama2"
 
     def init_db(self):
         conn = sqlite3.connect(self.db_path)
@@ -61,7 +65,6 @@ class ThoughtNetwork:
             self.thoughts.append(thought)
         conn.close()
         
-        # Connect thoughts after all are loaded
         for row in rows:
             thought = next(t for t in self.thoughts if t.id == row[0])
             thought.connections = [next(t for t in self.thoughts if t.id == conn_id) 
@@ -78,10 +81,11 @@ class ThoughtNetwork:
         conn.close()
 
     def generate_initial_thoughts(self):
-        for i in range(5):
-            self.thoughts.append(Thought(i, random.uniform(50, 750), random.uniform(50, 550), ""))
+        initial_concepts = ["hello", "world", "thinking", "learning", "growing"]
+        for i, concept in enumerate(initial_concepts):
+            self.thoughts.append(Thought(i, random.uniform(50, 750), random.uniform(50, 550), concept))
 
-    def connect_thoughts(self, max_connections=2):
+    def connect_thoughts(self, max_connections=3):
         for thought in self.thoughts:
             num_connections = random.randint(0, max_connections)
             thought.connections = random.sample([t for t in self.thoughts if t != thought], num_connections)
@@ -93,12 +97,12 @@ class ThoughtNetwork:
                 dy = other.y - thought.y
                 distance = math.sqrt(dx*dx + dy*dy)
                 if distance > 0:
-                    force = (distance - 100) / 500
+                    force = (distance - 100) / 1000  # Reduced force for more stability
                     thought.vx += force * dx / distance
                     thought.vy += force * dy / distance
             
-            thought.vx *= 0.95
-            thought.vy *= 0.95
+            thought.vx *= 0.9  # Increased damping for stability
+            thought.vy *= 0.9
             thought.x += thought.vx
             thought.y += thought.vy
             thought.x = max(thought.radius, min(750 - thought.radius, thought.x))
@@ -128,9 +132,37 @@ class ThoughtNetwork:
         if len(self.thoughts) < 3:
             return "I need more information to generate a response."
         
-        selected_thoughts = random.sample(self.thoughts, 3)
+        response_length = random.randint(1, 5)  # Variable response length
+        selected_thoughts = random.sample(self.thoughts, response_length)
         response = " ".join([t.concept for t in selected_thoughts])
         return response.capitalize() + "."
+
+    def ask_ollama(self, prompt):
+        data = {
+            "model": self.ollama_model,
+            "prompt": prompt
+        }
+        try:
+            response = requests.post(self.ollama_url, json=data, timeout=10)
+            if response.status_code == 200:
+                return response.json()['response']
+            else:
+                return "Error communicating with Ollama"
+        except requests.exceptions.RequestException:
+            return "Failed to connect to Ollama"
+
+    def interact_with_ollama(self):
+        prompt = self.generate_response()
+        ollama_response = self.ask_ollama(f"You are talking to a simple thought network that is learning language. It said: '{prompt}'. Please respond in a way that might help it learn language, counting, or the alphabet. Keep your response simple and gentle.")
+        self.process_input(ollama_response)
+        return ollama_response
+
+    def continuous_thinking(self):
+        while True:
+            self.update_positions()
+            new_thought = self.generate_response()
+            self.process_input(new_thought)
+            time.sleep(5)  # Adjust the thinking interval as needed
 
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")
@@ -155,20 +187,28 @@ def update_network():
     while True:
         network.update_positions()
         emit_network_state()
-        time.sleep(0.05)
+        time.sleep(0.1)  # Reduced update frequency for stability
 
 def terminal_interface():
     print("Welcome to the Thought Network Terminal!")
-    print("Type your input to teach the network. Type 'exit' to quit.")
+    print("Type your input to interact with the network.")
+    print("Press Enter with no input to let the network think on its own.")
+    print("Press 'Home' key to interact with Ollama.")
+    print("Type 'exit' to quit.")
     
     while True:
         user_input = input("> ")
         if user_input.lower() == 'exit':
             break
-        
-        print(network.process_input(user_input))
-        time.sleep(1)
-        print("Network's response:", network.generate_response())
+        elif user_input == "":
+            print("Network's thought:", network.generate_response())
+        elif user_input == "\x1b[H":  # Home key
+            print("Network asks Ollama:", network.generate_response())
+            ollama_response = network.interact_with_ollama()
+            print("Ollama responds:", ollama_response)
+        else:
+            print(network.process_input(user_input))
+            print("Network's response:", network.generate_response())
         emit_network_state()
 
 if __name__ == '__main__':
@@ -176,8 +216,12 @@ if __name__ == '__main__':
     update_thread.daemon = True
     update_thread.start()
 
+    thinking_thread = threading.Thread(target=network.continuous_thinking)
+    thinking_thread.daemon = True
+    thinking_thread.start()
+
     terminal_thread = threading.Thread(target=terminal_interface)
     terminal_thread.daemon = True
     terminal_thread.start()
 
-    socketio.run(app, debug=True, use_reloader=False)
+    socketio.run(app, debug=False, use_reloader=False)
