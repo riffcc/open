@@ -1,123 +1,130 @@
 import pyglet
-import pyglet.gl as gl
+from pyglet.window import mouse, key
 import random
 import math
-from pyglet.graphics import Batch
-from pyglet.shapes import Circle, Line
+import sqlite3
+import json
+import requests
+import threading
+import time
 
-# Thought class: represents a "thought" as a node in the network
 class Thought:
-    def __init__(self, id, value, x, y):
+    def __init__(self, id, x, y, concept="", details=""):
         self.id = id
-        self.value = value
-        self.connections = []
         self.x = x
         self.y = y
         self.vx = 0
         self.vy = 0
-
-    def __str__(self):
-        return f"Thought {self.id}: {self.value}"
+        self.radius = random.uniform(10, 20)
+        self.color = (random.randint(100, 255), random.randint(100, 255), random.randint(100, 255))
+        self.connections = []
+        self.concept = concept
+        self.details = details
 
 class ThoughtNetwork:
-    def __init__(self, num_thoughts=10):
-        self.thoughts = []
-        self.initialize_thoughts(num_thoughts)
-        self.connect_thoughts()
+    def __init__(self, db_path='thoughts.db'):
+        # ... (keep the existing initialization code)
 
-    def initialize_thoughts(self, num_thoughts):
-        values = ["Quantum", "Relativity", "Information", "Chaos", "Harmony"]
-        for i in range(num_thoughts):
-            x = random.uniform(50, 750)
-            y = random.uniform(50, 550)
-            thought = Thought(i, random.choice(values), x, y)
+    def init_db(self):
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        c.execute('''CREATE TABLE IF NOT EXISTS thoughts
+                     (id INTEGER PRIMARY KEY, concept TEXT, details TEXT, x REAL, y REAL, connections TEXT)''')
+        conn.commit()
+        conn.close()
+
+    def load_thoughts(self):
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        c.execute("SELECT * FROM thoughts")
+        rows = c.fetchall()
+        for row in rows:
+            thought = Thought(row[0], row[3], row[4], row[1], row[2])
+            thought.connections = json.loads(row[5])
             self.thoughts.append(thought)
+        conn.close()
 
-    def connect_thoughts(self, max_connections=3):
+    def save_thoughts(self):
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
         for thought in self.thoughts:
-            num_connections = random.randint(1, max_connections)
-            for _ in range(num_connections):
-                other_thought = random.choice(self.thoughts)
-                if other_thought != thought and other_thought.id not in thought.connections:
-                    thought.connections.append(other_thought.id)
+            c.execute("INSERT OR REPLACE INTO thoughts VALUES (?, ?, ?, ?, ?, ?)",
+                      (thought.id, thought.concept, thought.details, thought.x, thought.y, 
+                       json.dumps([t.id for t in thought.connections])))
+        conn.commit()
+        conn.close()
 
-    def evolve_thoughts(self):
-        for thought in self.thoughts:
-            if thought.connections:
-                connected_values = [self.thoughts[conn_id].value for conn_id in thought.connections]
-                thought.value = random.choice(connected_values)
+    def learn(self):
+        thought = random.choice(self.thoughts)
+        question = f"Explain the concept of {thought.concept} in one sentence."
+        response = self.ask_ollama(question)
+        
+        new_thought = Thought(len(self.thoughts), random.uniform(50, 750), random.uniform(50, 550), 
+                              response.split()[0], response)  # Use first word as concept, full sentence as details
+        
+        new_thought.connections.append(thought)
+        thought.connections.append(new_thought)
+        self.thoughts.append(new_thought)
+        self.save_thoughts()
 
-    def update_positions(self):
-        for thought in self.thoughts:
-            # Apply forces
-            for other in self.thoughts:
-                if other != thought:
-                    dx = other.x - thought.x
-                    dy = other.y - thought.y
-                    distance = math.sqrt(dx*dx + dy*dy)
-                    if distance > 0:
-                        force = (distance - 100) / 1000  # Adjust these values to change the network's behavior
-                        thought.vx += force * dx / distance
-                        thought.vy += force * dy / distance
-
-            # Apply velocity
-            thought.x += thought.vx
-            thought.y += thought.vy
-
-            # Damping
-            thought.vx *= 0.9
-            thought.vy *= 0.9
-
-            # Keep within bounds
-            thought.x = max(50, min(750, thought.x))
-            thought.y = max(50, min(550, thought.y))
+    # ... (keep other methods the same)
 
 class NetworkVisualization(pyglet.window.Window):
     def __init__(self, network):
-        super().__init__(800, 600, "Thought Network Visualization")
+        super().__init__(1024, 768, "Dynamic Thought Network with Concept Visualization")
         self.network = network
-        self.batch = Batch()
-        self.nodes = []
-        self.edges = []
-        self.create_visuals()
-
-    def create_visuals(self):
-        for thought in self.network.thoughts:
-            circle = Circle(thought.x, thought.y, 20, color=(100, 100, 255), batch=self.batch)
-            self.nodes.append(circle)
-
-        for thought in self.network.thoughts:
-            for conn_id in thought.connections:
-                other = self.network.thoughts[conn_id]
-                line = Line(thought.x, thought.y, other.x, other.y, width=2, color=(200, 200, 200), batch=self.batch)
-                self.edges.append(line)
+        self.batch = pyglet.graphics.Batch()
+        self.circles = []
+        self.labels = []
+        self.lines = []
+        self.details_label = pyglet.text.Label('', x=10, y=10, width=300, multiline=True, 
+                                               font_size=10, color=(255, 255, 255, 255))
+        self.selected_thought = None
+        self.update_visuals()
 
     def update_visuals(self):
-        for i, thought in enumerate(self.network.thoughts):
-            self.nodes[i].x = thought.x
-            self.nodes[i].y = thought.y
-
-        edge_index = 0
-        for thought in self.network.thoughts:
-            for conn_id in thought.connections:
-                other = self.network.thoughts[conn_id]
-                self.edges[edge_index].x = thought.x
-                self.edges[edge_index].y = thought.y
-                self.edges[edge_index].x2 = other.x
-                self.edges[edge_index].y2 = other.y
-                edge_index += 1
+        self.batch = pyglet.graphics.Batch()
+        self.circles = [pyglet.shapes.Circle(t.x, t.y, t.radius, color=t.color, batch=self.batch) 
+                        for t in self.network.thoughts]
+        self.labels = [pyglet.text.Label(t.concept, x=t.x, y=t.y, anchor_x='center', anchor_y='center', 
+                                         font_size=8, color=(0, 0, 0, 255), batch=self.batch) 
+                       for t in self.network.thoughts]
+        self.lines = []
+        for t in self.network.thoughts:
+            for c in t.connections:
+                self.lines.append(pyglet.shapes.Line(t.x, t.y, c.x, c.y, width=1, color=(200, 200, 200), batch=self.batch))
 
     def on_draw(self):
         self.clear()
         self.batch.draw()
+        if self.selected_thought:
+            self.details_label.text = f"Concept: {self.selected_thought.concept}\nDetails: {self.selected_thought.details}"
+            self.details_label.draw()
 
     def update(self, dt):
         self.network.update_positions()
         self.update_visuals()
-        self.network.evolve_thoughts()
+
+    def on_mouse_press(self, x, y, button, modifiers):
+        if button == mouse.LEFT:
+            self.select_thought(x, y)
+        elif button == mouse.RIGHT:
+            threading.Thread(target=self.network.learn).start()
+
+    def select_thought(self, x, y):
+        for thought in self.network.thoughts:
+            if math.sqrt((thought.x - x)**2 + (thought.y - y)**2) < thought.radius:
+                self.selected_thought = thought
+                break
+        else:
+            self.selected_thought = None
+
+    def on_key_press(self, symbol, modifiers):
+        if symbol == key.SPACE:
+            self.network.learn()
 
 def main():
-    network = ThoughtNetwork(num_thoughts=15)
+    network = ThoughtNetwork()
     visualization = NetworkVisualization(network)
     pyglet.clock.schedule_interval(visualization.update, 1/60.0)
     pyglet.app.run()
