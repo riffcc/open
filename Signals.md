@@ -1,6 +1,38 @@
 # Signals for Humans
 This is an attempt to condense the original Signals paper into something digestible.
 
+## Foreword
+Today we're going to introduce a radically simple set of ideas,
+flipping the usual way we think about building things on the Internet.
+
+We'll talk about ways to enable use cases that are a natural fit for technology
+we have already built and proven to work. A streaming portal for media, built on 
+technologies that in their totality provide a solid foundation for Immortal Libraries.
+
+To do this, we created something we now call The Defederation Model.
+
+![alt text](image.png)
+
+We'll get into what the hell Defederation is in a second.
+
+We'll talk about the other use cases that could quickly be added to this foundation,
+and how every single use case makes it more compelling,
+more likely to be generally useful to everyone,
+and our model for creating a positive feedback of people funding use cases that suit them,
+including models for organisations and enterprises to contribute to the effort in a way
+that provides immediate, tangible benefits to them.
+
+Ultimately, this is a system designed to solve problems,
+get better and better, reward early, mid and late adopters,
+and to do so in a way that everyone can understand and participate in.
+
+In some ways, these simple concepts are built around my life's work,
+but are now so much better and bigger than anything I could have imagined.
+
+Thanks for reading so far, enjoy the ride.
+
+~ Wings (Founder, The Riff Project)
+
 ## Simple goals
 We want to make a system that uses novel ideas and technology to make it easier and easier for people, companies, governments, and other organizations to collaborate.
 
