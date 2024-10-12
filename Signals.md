@@ -221,7 +221,331 @@ OrbitDB is a database protocol built on top of IPFS.
 
 It allows you to talk in a common language to other peers - browsers, runnning IPFS and OrbitDB - allowing you to host your entire website's database - the database itself and everything about the site - on a decentralised group of volunteers. Essentially, using the site, you donate a little bit of your compute's bandwidth to act as a sort of distributed storage layer.
 
+At this point, we now have a system that is orders of magnitude cheaper, orders of magnitude easier to manage, and orders of magnitude more resilient. Adding OrbitDB effectively means that we don't *technically* need anything to be hosted by us, except for these remaining components:
 
+* "Meet-me" server (WebRTC Relay) to allow for direct connections between users
+* A CDN to act as a cache layer for the website
+* Three IPFS gateways to allow dialing content
+
+Total cost to run a site at this point is not only less than $1000 a year, but could plausibly be less than $150 a year.
+
+Now you've got something that's cheaper to run, easier to manage, and more resilient than anything else on the market that isn't also doing the same tricks.
+
+But there's two final flourishes, because ultimately we haven't solved the biggest issue with the website.
+
+***Us***.
+
+### The Cluster
+Even if we went to this point, we still don't even have a library that we can sustain yet.
+
+Simply put, we can use IPFS Cluster - this allows us to not only maintain a list of "pins" of content
+to keep available and online via IPFS on our own servers and nodes, but also allows anyone else who
+wanted to, to be able to join and help distribute files.
+
+Launching an IPFS Cluster is easy, and essentially allows your users to help act as the true hosts of your website.
+
+Plus, Orbiter will soon be upgraded to distribute pinning of the OrbitDB database and data itself, 
+allowing for total resilience.
+
+This is close. We're not there yet, but we're close.
+
+### The Lens
+
+Ultimately, we've built a very resilient *library* at this point, 
+but it will NOT, no matter how much we improve it, out live us -
+without serious manual intervention, one day this library will fall like any other.
+
+This is where Defederation comes in. Instead of a website, we decided we now have a Lens.
+
+A Lens is simply a way to make your own website or platform (or app!)
+by being able to split, merge and fork the work of others.
+
+The main thing we wanted to resolve is fairly simple:
+
+* It's very likely Creative Commons would love a platform like Riff.CC 
+(we've had some conversations and they loved it years ago before we were cool!)
+
+* We want to help contribute massively to the Creative Commons ecosystem.
+
+* But they don't need another website that someone else runs.
+    * Something that someone else can upload things to
+    * And get them in trouble if they do something wrong
+
+How can we do what Riff.CC was originally intended for, 
+that Unstoppable Library concept, but without the need to rely on us?
+
+Simple - we make us irrelevant and yet helpful. Let me explain.
+
+With Defederation, now we can make Riff.CC a Lens for ourselves. 
+It will contain nothing but our site running on Orbiter,
+with all metadata in OrbitDB*
+(* really, Constellation, which is a wrapper around OrbitDB
+Shoutout Julien.) and all the files in IPFS.
+
+What's special is what happens for Creative Commons now. They can simply load our Lens,
+go the settings and grab our site ID (a Defederation key), log into their owns Lens as
+an administrator, and then "follow" or "trust" our Lens.
+
+This is real technology, simple to implement, and it works.
+
+> [ed's note: okay, simple is a massive exaggeration, but it's simple enough we've done it three times now.]
+
+Here's what happens next, as shown by what we consider our first "true" Defederation implementation:
+
+From "c.riff.cc"'s perspective - just a normal Lens, running Orbiter, and you can't really tell it's in IPFS and OrbitDB at all...
+
+![alt text](first-defederation-riffside.png)
+
+Normal so far, right?
+
+Here's an entirely different Lens, running on a different server, on a different continent.
+
+![alt text](first-defederation-ftwcside.png)
+
+And it doesn't have any of the files or content at all.
+
+We:
+* Uploaded an album - Adam McHeffey's "Let's Kick Fire" - to our Lens, Riff.CC
+* Uploaded a different pin on FTWC.xyz (our demo lens)
+* On FTWC.xyz, we then "follow" Riff.CC
+* And suddenly...
+
+![alt text](first-defederation-sidebyside.png)
+
+Both lenses have Riff.CC's content, but technically it only "exists" on Riff.CC's Lens.
+
+Both sites remain sovereign and completely separate and independent, but you already
+can't really see any difference between them. 
+
+In fact, behind the scenes, either site can actually change
+and edit the content on their site - if it differs from the lens it comes from
+(such as if FTWC is deleting a pin that Riff.CC has uploaded, or vice versa)
+then only the lens making the change will be affected - preserving the original.
+
+We then did the same thing in reverse, uploading a pin to FTWC.xyz, and then having
+Riff.CC follow it.
+
+> [ed's note: Sadly there's no screenshot of that bit, we were too excited to document as well as we should have]
+
+Why are we now irrelevant, yet important?
+
+Simply put, we're now a Lens, just our view of the world - but we can change what we see.
+
+If we want to, we can upload new stuff to our Lens and it will appear on both places!
+
+If we don't do a great job, now FTWC can remove items or even choose to defederate from us by unfollowing.
+
+Now we have a system where we're completely separate from each other,
+and yet we act as one. FTWC and Riff.CC could be literally and completely different,
+run by different people, from different continents,
+and yet this would operate as one.
+
+Moreover, now if you got rid of either Lens, everything would be preserved by the other!
+
+This is finally the Unstoppable Library - not by being uncensorable through thumbing our nose at the law or the man - because each Lens on the clearnet Internet is still ultimately just a website someone is responsible for - but by making it so easy to pick up our work that it WILL by definition outlive us as long as even one person wants to keep something going from it.
+
+It is the mark of the last library to fall,
+and the first Library.
+
+## Riff.CC, The First Lens and the First Library
+This places Riff.CC in a very unique position, already something vaguely historic.
+
+It's the first Lens, and will be a purely Creative Commons and Public Domain Lens,
+holding the first and only unstoppable Library of copyleft and public domain works.
+
+It performs *faster than Netflix* in some tests (buffering and loading speeds are perceptible improvements over Netflix under ideal conditions, and just about comparable in real world conditions).
+
+It runs on a semi-impossible to censor network that spans the entire globe, and is fully permissionless.
+
+It is fully open source, and as long as you follow the AGPL, you can use it as the base of your own project.
+
+It is also fully interoperable with other Lenses, meaning you can follow another Lens and see their content in your feed,
+and you can merge with or split from them if you so desire.
+
+This is already interesting, and we're almost ready to actually throw open our doors.
+
+And it's *gorgeous*:
+
+![alt text](orbiter-2024-10.png)
+
+Heck, you can actually use it today, while we're working on it! It's at https://orbiter.riff.cc - every single time we push a new change, and it passes tests, it makes it there.
+
+We're putting some final polishes on it:
+* Making sure every piece of content is playable, pulling together years of development
+* Fixing a few quirks and fleshing out the user experience
+* Bringing back true Defederation support (which we've had in Orbiter before) since we turned it off for the redesign so we could focus on just UX.
+
+Once it's back, it'll look and feel EXACTLY as it does now - 
+but what you won't know is that behind the scenes, we're just a Lens,
+with fully half of the content on the site existing on a completely different Lens - FTWC.xyz, with which we share no common infrastructure *at all*.
+
+Our network of users, running Orbiter and IPFS + IPFS Cluster Follower, are the thing now supporting our entire site at that point.
+
+And finally, Riff.CC will be considered publicly launched to the world at large - completing a dream that started in 2009.
+
+Exciting, right? Well, it's just the beginning.
+
+## The Accretion Model
+Think carefully - what is Defederation truly? Not a technical system - not really - 
+Defederation is now a social protocol. And it encourages cooperation. We can build from that.
+
+What if we could start an entire ecosystem around the original Riff.CC concept, split out the software into its own properly separated project (we're calling the Pioneer Ecosystem, in honour of **Pioneer 10**) and begin a "flywheel of development" where we could add new features and use cases to the platform at an exponential rate?
+
+Simply put, we've made it so easy to bring ANY website into what we've built, and anything we can do with OrbitDB and IPFS is now something that can become a **use case** for Orbiter - an Orbiter Module.
+
+Here's how it works:
+
+* Riff Labs, as the main sponsor of Riff.CC so far, finds a client who wants their use case built and made available as an Orbiter Module.
+* Thanks to the AGPL, we are essentially required to keep this new module open source.
+* However, for the cost of the average module ($10K-20K depending on complexity), it's worth getting Riff Labs to get it built for most clients, even if they don't end up with total control over what results.
+* Riff Labs will build something that would cost them $200K+ to develop - which might still never be able to match our system in terms of being Library-like! - and then the client gets to use it for whatever they want, totally open source, forever.
+
+In basic terms, we're so cheap even those with secret, cool use cases will consider us. This is the main strange property we've now created - and forms part of the Accretion Model.
+
+![alt text](accretion.png)
+*Via [Wikipedia](https://en.wikipedia.org/wiki/File:Black_hole%27s_accretion_disk.jpg), CC-BY-SA-4.0 International*
+
+As people become drawn to the ecosystem, they add their interest or their own funding and modules, and the flywheel spins faster and faster.
+
+We can actually also make this attractive to people wanting something proprietary:
+* We do the same exact process, but instead of forcing them into making their entire solution AGPL...
+* We split it into smaller components that are individually useful but don't solve their specific problem
+* Then we allow them to configure modules together to solve their use case.
+
+This allow us to allow them to technically comply with the AGPL, and even its spirit - contributing truly useful building blocks for other things - and still giving them the benefits of later developments by the Ecosystem when their modules are later improved.
+
+While still allowing them a proprietary solution and advantage.
+
+For companies who simply make their entire solution fully open, we give them a 25% "discount" on development, and either way we credit them with contributing to the Ecosystem.
+
+![alt text](gravity-well.png)
+*Via [Wikipedia](https://en.wikipedia.org/wiki/File:GravityPotential.jpg#file), CC-BY-SA-4.0 International*
+
+
+It accretes.
+
+We then introduce the concept of the "Pioneer Toolbox" - the ability to use a visual editor to drag and drop...
+
+not just modules together - to build your own Lens...
+
+not just media, to upload to your Lens, and anything else you can do with your modules...
+
+Not just content from other Lenses, through Defederation...
+
+But ***entire lenses including content from any Lens you want***.
+
+Even ***entire modules you don't have yet*** - the most instantly useful thing on the market.
+
+And what's more, we can even do this *privately!* within companies, allowing anyone to build their own private lenses for their own use, and instantly collaborate in deep ways with other companies.
+
+## The Accretion - The Ultimate Flywheel
+Already, we're looking at roughly this if we have even half competent attempts at marketing and outreach:
+
+![alt text](flywheel-revenue.png)
+
+It looks amazingly optimistic, but here's what it's based on:
+
+Funding Growth: Funding grows exponentially over the 12 months, rising from an initial $20,000 to nearly $1.73 million by month 12. This reflects the increasing appeal to enterprises, as well as the broader adoption of the Riff platform.
+
+Spend Growth: Spend also increases over time, but at a slower rate compared to funding. By month 12, the projected spend is around $186,264, which is significantly lower than the incoming funding. This suggests a healthy financial buffer that can be reinvested into scaling operations, infrastructure, and development.
+
+Enterprise Appeal: Enterprise appeal starts at around 5% in the early months but rises sharply to 85% by month 12. This shows that as more enterprises understand the system’s advantages—cost-efficiency, decentralization, and trust-based collaboration—they are increasingly drawn in.
+
+It *accretes*.
+
+## A New Ecosystem
+We quickly become one of the most useful tools in the world, yet controlled by nobody, with no investors.
+
+No single point of failure. No need to answer to any party, and yet - nobody harmed through our actions, and no control we don't need to have.
+
+Even more unfairly, once developed further, Orbiter lets us:
+
+* Near-instantly distribute upgraded versions of any Orbiter Module to all users
+* Outperform just about any centralised solution, forever
+* Begin to accrete almost every use case into it, becoming a truly generalised solution
+
+We then begin making our own strategic accretions.
+
+### CryptPad
+We take the open source code of CryptPad, built on excellent cryptographic and security primitives and known to be one of the most secure Office/Productivity suites in the world. It even has the same collaborative editing on a single document that Google Docs and earlier things like Etherpad made so popular.
+
+By spending a few weeks converting it to a module, creative enough early adopters can now use it on their Lens, public or private, and *replace Google Docs or Microsoft Office* without having to create a centralised CryptPad server.
+
+We can make the interface look and feel as a a native Orbiter Module, and we can even make it easy to export an entire folder out so you can take it to a CryptPad server anywhere and exit the ecosystem. We *want* to enable absolute freedom of choice - because that helps us to be so attractive that we can accrete.
+
+### Bookmarks
+We can build a simple bookmarks module, to allow people to collaboratively trade bookmarks with each other. This wouldn't take a lot of effort, but instantly makes us more useful.
+
+### Calendar
+Same sort of idea.
+
+### Personal booking system (a la Calendly)
+Then we do this too.
+
+### Meetup system
+Now we add a module to allow people to host and organise meetups...
+
+### Geocaching module
+Now we add a module to allow people to collaboratively geocache...
+
+### ...
+and then anything we can think of that will help real communities and physical libraries, charities, schools...
+
+Before long, we have accreted just about 80% of the use cases that most people would want. At minimum, almost any company would find us interesting - especially if we can make it so they can use it to build their own internal tools.
+
+And now anyone in the world - now revealed as not just any person - any company - any entity or group - any project - even any government - can use it to build an extremely powerful and personal front page showing everything they care about and/or love or want to identify with.
+
+We give everyone their own total identity, their own personal Library - but notice the L, this is a true Library, and has all the properties of Riff.CC.
+
+Moreover, we can allow users to use our CDN and gateway for their own Lenses, eliminating the need for them to worry about any of that detail. We can potentially charge them for it, maybe above cost slightly, but honestly we don't even need to.
+
+Users using our CDN and gateway will be charged not to pay for it, but to make sure they are not simply abusing it to spread bad content - it's a verification thing, not a money making thing.
+
+So we make a hosting service on top, where we'll give you a click-to-buy Lens, and all a user will pay for is:
+
+* A tiny amount of storage, 100MB or so, to enable their Lens
+* Enough bandwidth to support their use case
+* If they want to bring their own domain, the cost of that
+* If they use our domain (nameoflens.pioneer.eco) they'll pay nothing for DNS/Domain costs.
+
+This could plausibly be as low as $50 a year for any user who wants *their own custom and personal domain* and as low as *$10 a year* for anyone else.
+
+So now you can have the most personal and powerful website you've ever had,
+built on all the things you think are important or cool or speak to you,
+and you can do it so cheaply it's almost free, even for those from relatively poor countries.
+
+Suddenly, we've not only created the best Libraries and the most powerful Lenses ever made, but we've also built a system so cheap that...
+
+**We can actually host a Lens for every single person on the planet, for a nominal cost to us of about $10,000 USD a month**
+
+At that point, with the Flywheel spinning so fast we can no longer develop fast enough to spend the money, we can hire developers, bring in outside parties to help flesh out the ecosystem, and increase accretion even further.
+
+Everyone who donated a module by paying for its development and getting it added to Orbiter now becomes an early "Pioneer" - and their use case gets fixes automatically as the community grows and works on the ecosystem.
+
+They get automatic upgrades, for free, forever, as long as anyone cares enough to improve their use case,
+
+and they get a system that lets them **collaborate seamlessly**.
+
+## The Collaboration
+Think about what this now does for collaboration.
+
+I can:
+* Share and edit documents with anyone from across the world,
+  without sharing any keys to my infrastructure or letting them access anything I don't want them to.
+* Collaboratively build up media libraries, or even entire websites, without needing to know Git, or even understand the underlying technology.
+* Run our own private networks, or even private lenses within a company, without needing to know or care about the details of how it works.
+* More and more use cases.
+
+What if we now enabled scientists to swap scientific papers and data with each other?
+
+Teachers to trade lesson plans and collaborate on new forms of education?
+
+Countries to work with each other for the common good, building shared papers and international treaties, with less friction than any existing system? Could the *UN* use this to be more effective than it is today?
+
+From here, we start to see what this truly is - not just yet, but close - a ***collaboration engine***.
+
+## The Collaboration Engine
+Once the Pioneer Ecosystem takes hold, we start to see people in a situation where a strange thing has occurred - the incentives for 
 
 # Original text that is being adapted follows and is not "part" of this.
 
