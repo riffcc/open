@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Thought Network Visualization</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
     <style>
         body { margin: 0; }
         canvas { display: block; }
@@ -11,59 +13,46 @@
 </head>
 <body>
     <div id="network-vis"></div>
-    <script type="module">
-        import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.155.0/build/three.module.js';
-        import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.155.0/examples/jsm/controls/OrbitControls.js';
-        import { io } from 'https://cdn.socket.io/4.0.1/socket.io.esm.min.js';
-
+    <script>
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer();
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.getElementById('network-vis').appendChild(renderer.domElement);
 
-        // Add OrbitControls
-        const controls = new OrbitControls(camera, renderer.domElement);
-        controls.enableDamping = true;
-        controls.dampingFactor = 0.25;
-        controls.screenSpacePanning = false;
-        controls.maxDistance = 500;
-        controls.minDistance = 1;
-
         const nodes = new THREE.Group();
         const links = new THREE.Group();
         scene.add(nodes);
         scene.add(links);
 
-        camera.position.z = 10;
+        camera.position.z = 5;
 
-        // Add lights
-        const ambientLight = new THREE.AmbientLight(0x404040);
-        scene.add(ambientLight);
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
-        directionalLight.position.set(1, 1, 1);
-        scene.add(directionalLight);
-
+        // Initialize Socket.IO
         const socket = io();
 
+        socket.on('connect', function() {
+            console.log('Connected to server');
+        });
+
         socket.on('network_update', function(data) {
+            console.log('Received network update:', data);
             // Clear existing nodes and links
-            while (nodes.children.length > 0) {
+            while(nodes.children.length > 0) {
                 nodes.remove(nodes.children[0]);
             }
-            while (links.children.length > 0) {
+            while(links.children.length > 0) {
                 links.remove(links.children[0]);
             }
 
             // Add new nodes
             data.nodes.forEach(node => {
-                const geometry = new THREE.SphereGeometry(0.2, 32, 32);
-                const material = new THREE.MeshPhongMaterial({ color: new THREE.Color(node.trust, 0, 1 - node.trust) });
+                const geometry = new THREE.SphereGeometry(0.1, 32, 32);
+                const material = new THREE.MeshBasicMaterial({ color: new THREE.Color(node.trust, 0, 1-node.trust) });
                 const sphere = new THREE.Mesh(geometry, material);
                 sphere.position.set(
-                    Math.random() * 8 - 4,
-                    Math.random() * 8 - 4,
-                    Math.random() * 8 - 4
+                    Math.random() * 4 - 2,
+                    Math.random() * 4 - 2,
+                    Math.random() * 4 - 2
                 );
                 sphere.userData = { id: node.id, concept: node.concept };
                 nodes.add(sphere);
@@ -84,7 +73,8 @@
 
         function animate() {
             requestAnimationFrame(animate);
-            controls.update();
+            nodes.rotation.x += 0.001;
+            nodes.rotation.y += 0.001;
             renderer.render(scene, camera);
         }
         animate();

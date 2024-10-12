@@ -268,6 +268,8 @@ class ThoughtNetwork:
 
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")
+
+# Create a global instance of ThoughtNetwork
 network = ThoughtNetwork()
 
 @app.route('/')
@@ -276,12 +278,13 @@ def index():
 
 @socketio.on('connect')
 def handle_connect():
+    print('Client connected')
     network.emit_network_state()
 
 def update_network():
     while True:
         network.emit_network_state()
-        time.sleep(1)
+        time.sleep(1)  # Adjust the interval as needed
 
 def terminal_interface():
     print("Welcome to the Thought Network Terminal!")
@@ -312,14 +315,15 @@ def terminal_interface():
         network.emit_network_state()
 
 if __name__ == '__main__':
-    network = ThoughtNetwork()
-
+    # Start the background network update thread
     update_thread = threading.Thread(target=update_network)
     update_thread.daemon = True
     update_thread.start()
 
+    # Start the terminal interface in a separate thread
     terminal_thread = threading.Thread(target=terminal_interface)
     terminal_thread.daemon = True
     terminal_thread.start()
 
-    socketio.run(app, debug=False, use_reloader=False, port=5000)
+    # Start the Flask application in the main thread
+    socketio.run(app, debug=True, use_reloader=False, port=5000)
