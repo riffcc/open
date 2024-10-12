@@ -171,7 +171,55 @@ BitTorrent provides a partial improvement to this. By allowing people to directl
 
 Instantly, nearly half of the cost is gone.
 
-That's huge! But you still have a major problem
+That's huge! But you still have a major problem.
+
+If the main website with the BitTorrent tracker goes down, here's what happens:
+* The website goes down
+* The BitTorrent tracker goes down
+* The files might technically still be out there, but someone has to go find them on their hard drive and manually re-seed and re-upload them to a new tracker.
+* If the servers go down, everything stops.
+
+It's closer to a better library, and is an improvment, but ultimately still very vulnerable.
+
+### Enter Challenger 2: Cloud Storage
+Cloud storage claims to be a solution to all problems, but as some like to say - "it's just someone else's computer".
+
+It has all of the same challenges as the traditional website, but with an added cost and complexity. It may even have lock-in exit fees.
+
+### Enter Challenger 3: IPFS
+The InterPlanetary File System provides a fascinating partial improvement.
+
+You can use IPFS to distribute data amongst your community, then as long as anyone who has a CID (essentially just a representation of a file, a hash*) is online and reasonably reachable for you, you can access the file.
+
+Moreover, you can run an IPFS Gateway, and now users can access any file on IPFS (or just files you've pinned to your gateway, whichever is preferred) through standard HTTPS.
+
+This is great! But you still need to run 3 silly servers! And 3 loadbalancers! And 3 routers! And you need to keep track of all the CIDs!
+
+(* Technically, a CID is not just a hash, it's a hash of a Merkle DAG, but that's not important for this explanation. And in practice, just think of it as a hash. It's fine.)
+
+It means that technically even if your site was to be destroyed, your users could still access the files - at least for a time - but only if they had saved all the CIDs for all the files, and only if the users who had the files realised keeping their IPFS nodes running would help and was a good idea.
+
+In practice, even this wouldn't help much.
+
+And on top of that, keeping regular dumps of all the website's files, code and data would become onerous, and may even risk exposing PII if the regex isn't perfect. And now you're relying on others to be keeping recent backups of the site.
+
+**Can we build further from here?**
+
+### Enter Unusual Suspect 1: The Traditional CDN
+Bunny.net (unaffiliated with Riff, we're just fans 😊) provides a very good overlay over IPFS, and allows you to use a CDN to access your files.
+
+This means any slowdown caused by IPFS doing retrievals over Bitswap can be papered over by the CDN, and you can continue to use your existing website and infrastructure.
+
+Since CIDs are fixed once created (unless upgrading to a new hashing algorithm or CID version), you can just set the caching time to a year. Now people must be more careful, increasing your team's base stress level.
+
+But you've now got a system that is orders of magnitude cheaper, orders of magnitude easier to manage, and orders of magnitude more resilient.
+
+So now we've made our site fast in any region, which is a huge improvement, but we've also made it so that we can survive almost any black swan event.
+
+### Enter Unusual Suspect 2: OrbitDB
+OrbitDB is a database protocol built on top of IPFS.
+
+It allows you to talk in a common language to other peers - browsers, runnning IPFS.
 
 # Original text that is being adapted follows and is not "part" of this.
 
