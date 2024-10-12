@@ -162,3 +162,187 @@ This response does a few things:
 
 
 Let me know if you'd like more ideas on how to interact with this learning network!
+2024-10-12 00:53:39,466 - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2024-10-12 00:53:39,466 - [33mPress CTRL+C to quit[0m
+2024-10-12 00:53:43,493 - 127.0.0.1 - - [12/Oct/2024 00:53:43] "GET /socket.io/?EIO=4&transport=polling&t=P9-0A52 HTTP/1.1" 200 -
+2024-10-12 00:53:43,500 - 127.0.0.1 - - [12/Oct/2024 00:53:43] "POST /socket.io/?EIO=4&transport=polling&t=P9-0A57&sid=4GlDwBgnZzEQs2z0AAAA HTTP/1.1" 200 -
+2024-10-12 00:53:43,508 - 127.0.0.1 - - [12/Oct/2024 00:53:43] "GET /socket.io/?EIO=4&transport=polling&t=P9-0A58&sid=4GlDwBgnZzEQs2z0AAAA HTTP/1.1" 200 -
+2024-10-12 00:53:43,535 - Network asks Ollama: M connect.
+2024-10-12 00:53:45,754 - Ollama responds: "Me too!  I'm connecting with you now." 
+
+Let's see... do you know how to count? One... two..." 
+
+
+This response:
+
+* **Acknowledges the thought network:** It starts by mirroring their statement in a friendly way.
+* **Uses simple vocabulary:** Words like "me," "too," and "connecting" are easy to understand.
+* **Introduces counting:**  Counting is a basic concept that many thought networks learn early on. 
+
+
+Let me know if you'd like more examples of how to interact with a learning thought network!
+2024-10-12 00:54:30,054 - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2024-10-12 00:54:30,054 - [33mPress CTRL+C to quit[0m
+2024-10-12 00:54:30,493 - 127.0.0.1 - - [12/Oct/2024 00:54:30] "GET /socket.io/?EIO=4&transport=polling&t=P9-0LZQ HTTP/1.1" 200 -
+2024-10-12 00:54:30,502 - 127.0.0.1 - - [12/Oct/2024 00:54:30] "POST /socket.io/?EIO=4&transport=polling&t=P9-0LZV&sid=VhAPe5EXfCgPX89_AAAA HTTP/1.1" 200 -
+2024-10-12 00:54:30,510 - 127.0.0.1 - - [12/Oct/2024 00:54:30] "GET /socket.io/?EIO=4&transport=polling&t=P9-0LZW&sid=VhAPe5EXfCgPX89_AAAA HTTP/1.1" 200 -
+2024-10-12 00:54:30,611 - Network asks Ollama: Growing and.
+2024-10-12 00:54:32,582 - Ollama responds: "Growing and... big!  One, two, three!" 
+
+
+This response does a few things to help the thought network learn:
+
+* **Completes the sentence:** It provides a natural way to finish the incomplete thought, showing how sentences are structured.
+* **Introduces a new concept:** "Big" connects to the idea of growth and introduces a simple adjective.
+* **Counts:** Counting numbers helps with numerical understanding. 
+
+
+
+Let me know if you'd like more ideas for interacting with this learning network!  
+
+2024-10-12 00:55:30,747 - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2024-10-12 00:55:30,747 - [33mPress CTRL+C to quit[0m
+2024-10-12 00:55:31,176 - Network asks Ollama: Can.
+2024-10-12 00:55:31,493 - 127.0.0.1 - - [12/Oct/2024 00:55:31] "GET /socket.io/?EIO=4&transport=polling&t=P9-0aSY HTTP/1.1" 200 -
+2024-10-12 00:55:31,501 - 127.0.0.1 - - [12/Oct/2024 00:55:31] "POST /socket.io/?EIO=4&transport=polling&t=P9-0aSd&sid=NZTgxd4q4M0RYBc6AAAA HTTP/1.1" 200 -
+2024-10-12 00:55:31,509 - 127.0.0.1 - - [12/Oct/2024 00:55:31] "GET /socket.io/?EIO=4&transport=polling&t=P9-0aSd.0&sid=NZTgxd4q4M0RYBc6AAAA HTTP/1.1" 200 -
+2024-10-12 00:55:31,910 - Ollama responds: "Can you say 'two'?" 
+
+
+This encourages the network to repeat a word related to counting, which is building on its existing understanding of simple words.  
+
+2024-10-12 00:57:56,022 - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2024-10-12 00:57:56,022 - [33mPress CTRL+C to quit[0m
+2024-10-12 00:57:56,494 - 127.0.0.1 - - [12/Oct/2024 00:57:56] "GET /socket.io/?EIO=4&transport=polling&t=P9-17sA HTTP/1.1" 200 -
+2024-10-12 00:57:56,503 - 127.0.0.1 - - [12/Oct/2024 00:57:56] "POST /socket.io/?EIO=4&transport=polling&t=P9-17sG&sid=x9WOl_5LrDe0ucy3AAAA HTTP/1.1" 200 -
+2024-10-12 00:57:56,512 - 127.0.0.1 - - [12/Oct/2024 00:57:56] "GET /socket.io/?EIO=4&transport=polling&t=P9-17sH&sid=x9WOl_5LrDe0ucy3AAAA HTTP/1.1" 200 -
+2024-10-12 00:57:56,550 - Network asks Ollama: Ollama i you.
+2024-10-12 00:57:58,630 - Ollama responds: "Hello! You said 'Ollama i you'.  Let's try saying 'hello' together.  Ready? Hello!" 
+
+
+This response does a few things:
+
+* **Acknowledges its attempt:** It shows the network that its output was understood, even if not perfectly.
+* **Uses simple language:** "Hello" is easy to understand and repeat.
+* **Promotes interaction:**  Encouraging the network to say "hello" back creates a back-and-forth conversation. 
+
+
+
+Let me know if you'd like more examples!
+2024-10-12 00:58:13,626 - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2024-10-12 00:58:13,626 - [33mPress CTRL+C to quit[0m
+2024-10-12 00:58:14,073 - Network asks Ollama: Too.
+2024-10-12 00:58:15,046 - Ollama responds: "Yes!  'Too' means the same as 'also'. Like, if I say 'I like apples,' you can say 'Me too!' " 😊 
+
+
+Let me know if you'd like to try another word!  
+
+2024-10-12 00:58:16,492 - 127.0.0.1 - - [12/Oct/2024 00:58:16] "GET /socket.io/?EIO=4&transport=polling&t=P9-1Ckg HTTP/1.1" 200 -
+2024-10-12 00:58:16,502 - 127.0.0.1 - - [12/Oct/2024 00:58:16] "POST /socket.io/?EIO=4&transport=polling&t=P9-1Ckl&sid=iXIGKx6Ebedfbl6xAAAA HTTP/1.1" 200 -
+2024-10-12 00:58:16,511 - 127.0.0.1 - - [12/Oct/2024 00:58:16] "GET /socket.io/?EIO=4&transport=polling&t=P9-1Ckm&sid=iXIGKx6Ebedfbl6xAAAA HTTP/1.1" 200 -
+2024-10-12 00:59:22,029 - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2024-10-12 00:59:22,030 - [33mPress CTRL+C to quit[0m
+2024-10-12 00:59:22,493 - 127.0.0.1 - - [12/Oct/2024 00:59:22] "GET /socket.io/?EIO=4&transport=polling&t=P9-1Srw HTTP/1.1" 200 -
+2024-10-12 00:59:22,502 - 127.0.0.1 - - [12/Oct/2024 00:59:22] "POST /socket.io/?EIO=4&transport=polling&t=P9-1Ss0&sid=4gWMjn3ltU4ijOS4AAAA HTTP/1.1" 200 -
+2024-10-12 00:59:22,512 - 127.0.0.1 - - [12/Oct/2024 00:59:22] "GET /socket.io/?EIO=4&transport=polling&t=P9-1Ss0.0&sid=4gWMjn3ltU4ijOS4AAAA HTTP/1.1" 200 -
+2024-10-12 00:59:22,750 - Network asks Ollama: Connect do.
+2024-10-12 00:59:23,498 - Ollama responds: "Connect...  like this? 
+
+*holds up two fingers and brings them together*" 
+
+
+Let's try again! What comes after 'do'? " 
+
+2024-10-12 00:59:29,245 - Network asks Ollama: Little.
+2024-10-12 00:59:29,742 - Ollama responds: "Little? What is little?"  
+
+ 
+Let's see what it says next! 😊  
+2024-10-12 00:59:31,010 - Network asks Ollama: And to.
+2024-10-12 00:59:31,746 - Ollama responds: "To where?"  
+
+Let's try pointing at things as we say them. 🌳 "Tree." Then point somewhere else. "To... rock!" 😄  
+
+
+
+2024-10-12 00:59:32,711 - Network asks Ollama: To helps m.
+2024-10-12 00:59:33,774 - Ollama responds: "You want to **help** me?  Let's try saying it together! 
+
+**Help**.  Like this: *H-E-L-P*." 
+
+
+Let me know if you'd like to try another word! 😄 
+
+2024-10-12 00:59:36,338 - Network asks Ollama: And understand if.
+2024-10-12 00:59:37,498 - Ollama responds: "Understand" means to know something or figure something out.  
+
+Like, if I say "One plus one is two", you **understand** that means there are two things when you put one and one together. 😊 
+
+
+Can you try to **understand** this word? 'Two' ?"
+2024-10-12 00:59:38,921 - Network asks Ollama: Of again error out learning.
+2024-10-12 00:59:39,686 - Ollama responds: "Learning can be tricky! Let's try counting together. One, two, three..." 
+
+
+Let me know if you want to count higher or try something else! 😊  
+
+2024-10-12 00:59:40,663 - Network asks Ollama: One hello introduces growing failed.
+2024-10-12 00:59:41,506 - Ollama responds: "Hmm, interesting!  Let's try something different. Can you say 'Hello'? " 
+
+
+I want to focus on a single word first to see if we can get that right. 😊 
+
+2024-10-12 01:00:36,938 - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2024-10-12 01:00:36,938 - [33mPress CTRL+C to quit[0m
+2024-10-12 01:00:37,492 - Network asks Ollama: World if curl.
+2024-10-12 01:00:37,494 - 127.0.0.1 - - [12/Oct/2024 01:00:37] "GET /socket.io/?EIO=4&transport=polling&t=P9-1l9o HTTP/1.1" 200 -
+2024-10-12 01:00:37,507 - 127.0.0.1 - - [12/Oct/2024 01:00:37] "POST /socket.io/?EIO=4&transport=polling&t=P9-1l9v&sid=Ih_9Yk3K6VGEvvX4AAAA HTTP/1.1" 200 -
+2024-10-12 01:00:37,517 - 127.0.0.1 - - [12/Oct/2024 01:00:37] "GET /socket.io/?EIO=4&transport=polling&t=P9-1l9v.0&sid=Ih_9Yk3K6VGEvvX4AAAA HTTP/1.1" 200 -
+2024-10-12 01:00:39,554 - Ollama responds: "The world is round? Like a ball?" 
+
+
+This response does a few things to help the thought network learn:
+
+* **Acknowledges its statement:** It shows the network that you heard and understood something.
+* **Asks a clarifying question:**  It tries to figure out what the network meant by "curl." 
+* **Uses simple, concrete language:**  "Round" and "like a ball" are easy concepts for a learning network to grasp. 
+
+
+
+Let me know if you'd like to try another interaction! 😊  
+
+2024-10-12 01:01:34,458 - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2024-10-12 01:01:34,458 - [33mPress CTRL+C to quit[0m
+2024-10-12 01:01:34,493 - 127.0.0.1 - - [12/Oct/2024 01:01:34] "GET /socket.io/?EIO=4&transport=polling&t=P9-1z4Q HTTP/1.1" 200 -
+2024-10-12 01:01:34,503 - 127.0.0.1 - - [12/Oct/2024 01:01:34] "POST /socket.io/?EIO=4&transport=polling&t=P9-1z4W&sid=OdaKtT9O824sb20yAAAA HTTP/1.1" 200 -
+2024-10-12 01:01:34,505 - 127.0.0.1 - - [12/Oct/2024 01:01:34] "GET /socket.io/?EIO=4&transport=polling&t=P9-1z4W.0&sid=OdaKtT9O824sb20yAAAA HTTP/1.1" 200 -
+2024-10-12 01:01:34,889 - Network asks Ollama: Learning which error tell.
+2024-10-12 01:01:36,078 - Ollama responds: "Learning which errors **tell**...  
+
+Hmm, maybe you mean 'learning about mistakes'? 
+
+Mistakes can teach us! When we make a mistake, we learn what to do differently next time."  
+
+
+Let's try another sentence together! How about: "I see one apple."   
+2024-10-12 01:03:51,475 - Network asks Ollama: Simple shows.
+2024-10-12 01:03:52,218 - Ollama responds: "Yes, you're right!  Simple shows are fun. What number do you think is next? One, two..." 
+
+
+Let me know if this helps!
+2024-10-12 01:03:57,650 - Network asks Ollama: M with.
+2024-10-12 01:03:58,526 - Ollama responds: "Hmm, you said 'M with'.  Do you mean the letter M?" 
+
+(You could then hold up an "M" if possible.)  
+
+
+Let me know what you think! 😊  
+

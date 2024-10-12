@@ -175,29 +175,40 @@ class ThoughtNetwork:
         logging.info(f"Network asks Ollama: {prompt}")
         ollama_response = self.ask_ollama(f"You are talking to a simple thought network that is learning language. It said: '{prompt}'. Please respond in a way that might help it learn language, counting, or the alphabet. Keep your response simple and gentle.")
         logging.info(f"Ollama responds: {ollama_response}")
+        
+        # Process the Ollama response and add it to the network
         self.process_input(ollama_response)
+        
         return ollama_response
+
+    def continuous_learning_loop(self):
+        while self.continuous_learning:
+            try:
+                network_thought = self.generate_response()
+                print(f"Network: {network_thought}")
+                
+                ollama_response = self.interact_with_ollama()
+                print(f"Ollama: {ollama_response}")
+                
+                network_response = self.generate_response()
+                print(f"Network response: {network_response}")
+                
+                time.sleep(5)  # Reduced to 5 seconds
+            except Exception as e:
+                logging.error(f"Error in continuous learning loop: {e}")
+                print(f"Error in continuous learning: {e}")
+                time.sleep(10)  # Reduced to 10 seconds for errors
 
     def toggle_continuous_learning(self):
         self.continuous_learning = not self.continuous_learning
         if self.continuous_learning:
-            self.continuous_learning_thread = threading.Thread(target=self.continuous_learning_loop)
-            self.continuous_learning_thread.daemon = True
-            self.continuous_learning_thread.start()
+            if self.continuous_learning_thread is None or not self.continuous_learning_thread.is_alive():
+                self.continuous_learning_thread = threading.Thread(target=self.continuous_learning_loop)
+                self.continuous_learning_thread.daemon = True
+                self.continuous_learning_thread.start()
+            return "Continuous learning enabled."
         else:
-            self.continuous_learning_thread = None
-        return f"Continuous learning {'enabled' if self.continuous_learning else 'disabled'}."
-
-    def continuous_learning_loop(self):
-        while self.continuous_learning:
-            network_thought = self.generate_response()
-            logging.info(f"Network thought: {network_thought}")
-            
-            ollama_response = self.interact_with_ollama()
-            logging.info(f"Ollama response: {ollama_response}")
-            
-            self.process_input(ollama_response)
-            time.sleep(5)  # Adjust the delay as needed
+            return "Continuous learning disabled."
 
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")
@@ -236,26 +247,34 @@ def terminal_interface():
         user_input = input("> ")
         if user_input.lower() == 'exit':
             break
+        elif user_input.lower() == 'toggle':
+            result = network.toggle_continuous_learning()
+            print(result)
         elif user_input == "":
             print("Network's thought:", network.generate_response())
         elif user_input == "\x1b[H":  # Home key
-            print("Network asks Ollama:", network.generate_response())
+            network_thought = network.generate_response()
+            print("Network asks Ollama:", network_thought)
             ollama_response = network.interact_with_ollama()
             print("Ollama responds:", ollama_response)
-        elif user_input.lower() == 'toggle':
-            print(network.toggle_continuous_learning())
+            print("Network's response:", network.generate_response())
         else:
             print(network.process_input(user_input))
             print("Network's response:", network.generate_response())
         emit_network_state()
 
 if __name__ == '__main__':
+    network = ThoughtNetwork()
+
+    # Start the background network update thread
     update_thread = threading.Thread(target=update_network)
     update_thread.daemon = True
     update_thread.start()
 
+    # Start the terminal interface in a separate thread
     terminal_thread = threading.Thread(target=terminal_interface)
     terminal_thread.daemon = True
     terminal_thread.start()
 
+    # Start the Flask application in the main thread
     socketio.run(app, debug=False, use_reloader=False, port=5000)
