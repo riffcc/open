@@ -14,19 +14,20 @@ import os
 import logging
 import networkx as nx
 import matplotlib.pyplot as plt
+from collections import Counter
 
 # Configure logging to a file
 logging.basicConfig(filename='thought_network_interactions.log', level=logging.INFO, 
                     format='%(asctime)s - %(message)s')
 
 class Thought:
-    def __init__(self, id, concept="", trust=0.0):
+    def __init__(self, id, concept="", trust=0.5):
         self.id = id
         self.concept = concept
-        self.trust = trust  # Initial trust starts at 0, must be earned
-        self.reputation_history = []  # Track all changes to reputation over time
+        self.trust = trust
         self.connections = {}  # Dictionary of connected Thoughts and their connection strengths
-        self.last_activity = time.time()
+        self.occurrences = 1  # Number of times this concept has been encountered
+        self.metadata = {}  # Additional metadata for the thought
 
     def to_dict(self):
         return {
@@ -34,16 +35,12 @@ class Thought:
             "concept": self.concept,
             "trust": self.trust,
             "connections": {c.id: strength for c, strength in self.connections.items()},
-            "reputation_history": self.reputation_history
+            "occurrences": self.occurrences,
+            "metadata": self.metadata
         }
 
     def update_trust(self, change, feedback_source):
         self.trust += change
-        self.reputation_history.append({
-            "change": change, 
-            "source": feedback_source, 
-            "timestamp": time.time()
-        })
         # Ensure trust is between 0.0 and 1.0
         self.trust = max(0.0, min(self.trust, 1.0))
         self.last_activity = time.time()
@@ -67,6 +64,8 @@ class ThoughtNetwork:
         self.ollama_model = "gemma2"
         self.continuous_learning = False
         self.continuous_learning_thread = None
+        self.high_trust_thoughts = set()
+        self.thought_counter = Counter()
 
     def init_db(self):
         conn = sqlite3.connect(self.db_path)
@@ -113,9 +112,12 @@ class ThoughtNetwork:
         for i, concept in enumerate(initial_concepts):
             self.add_thought(concept)
 
-    def add_thought(self, concept, trust=0.0):
+    def add_thought(self, concept, trust=0.5, occurrences=1, metadata=None):
         new_id = max(self.thoughts.keys(), default=-1) + 1
         new_thought = Thought(new_id, concept, trust)
+        new_thought.occurrences = occurrences
+        if metadata:
+            new_thought.metadata = metadata
         self.thoughts[new_id] = new_thought
         self.save_thoughts()
         return new_thought
@@ -128,6 +130,9 @@ class ThoughtNetwork:
     def reinforce_thought(self, thought, amount=0.1):
         thought.update_trust(amount, "system")
         self.save_thoughts()
+        if thought.trust > 0.7:
+            self.high_trust_thoughts.add(thought.id)
+        self.thought_counter[thought.id] += 1
 
     def weaken_thought(self, thought, amount=0.1):
         thought.update_trust(-amount, "system")
@@ -157,11 +162,11 @@ class ThoughtNetwork:
         return f"Processed input and added {len(new_thoughts)} new thoughts."
 
     def generate_response(self):
-        all_thoughts = list(self.thoughts.values())
-        if not all_thoughts:
+        if not self.high_trust_thoughts:
             return "I need more information to generate a response."
         
-        selected_thought = random.choice(all_thoughts)
+        selected_thought_id = max(self.high_trust_thoughts, key=lambda id: self.thought_counter[id])
+        selected_thought = self.thoughts[selected_thought_id]
         response = [selected_thought.concept]
 
         for _ in range(random.randint(2, 5)):
@@ -266,7 +271,14 @@ class ThoughtNetwork:
         network_state = self.to_json()
         socketio.emit('network_update', network_state)
 
-app = Flask(__name__)
+    def update_thought_metadata(self, thought_id, metadata):
+        if thought_id in self.thoughts:
+            self.thoughts[thought_id].metadata.update(metadata)
+            self.save_thoughts()
+            return True
+        return False
+
+app = Flask(__name__, static_folder='static')
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 # Create a global instance of ThoughtNetwork
