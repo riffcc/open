@@ -421,8 +421,7 @@ For companies who simply make their entire solution fully open, we give them a 2
 ![alt text](gravity-well.png)
 *Via [Wikipedia](https://en.wikipedia.org/wiki/File:GravityPotential.jpg#file), CC-BY-SA-4.0 International*
 
-
-It accretes.
+It **accretes**.
 
 We then introduce the concept of the "Pioneer Toolbox" - the ability to use a visual editor to drag and drop...
 
@@ -445,11 +444,11 @@ Already, we're looking at roughly this if we have even half competent attempts a
 
 It looks amazingly optimistic, but here's what it's based on:
 
-Funding Growth: Funding grows exponentially over the 12 months, rising from an initial $20,000 to nearly $1.73 million by month 12. This reflects the increasing appeal to enterprises, as well as the broader adoption of the Riff platform.
+> Funding Growth: Funding grows exponentially over the 12 months, rising from an initial $20,000 to nearly $1.73 million by month 12. This reflects the increasing appeal to enterprises, as well as the broader adoption of the Riff platform.
 
-Spend Growth: Spend also increases over time, but at a slower rate compared to funding. By month 12, the projected spend is around $186,264, which is significantly lower than the incoming funding. This suggests a healthy financial buffer that can be reinvested into scaling operations, infrastructure, and development.
+> Spend Growth: Spend also increases over time, but at a slower rate compared to funding. By month 12, the projected spend is around $186,264, which is significantly lower than the incoming funding. This suggests a healthy financial buffer that can be reinvested into scaling operations, infrastructure, and development.
 
-Enterprise Appeal: Enterprise appeal starts at around 5% in the early months but rises sharply to 85% by month 12. This shows that as more enterprises understand the system’s advantages—cost-efficiency, decentralization, and trust-based collaboration—they are increasingly drawn in.
+> Enterprise Appeal: Enterprise appeal starts at around 5% in the early months but rises sharply to 85% by month 12. This shows that as more enterprises understand the system’s advantages—cost-efficiency, decentralization, and trust-based collaboration—they are increasingly drawn in.
 
 It *accretes*.
 
@@ -491,6 +490,41 @@ Now we add a module to allow people to collaboratively geocache...
 ### ...
 and then anything we can think of that will help real communities and physical libraries, charities, schools...
 
+### The Accretion Continues
+It already feels somewhat "unfair" to everyone else on the market. 
+
+But it's important to remember that we're not competing with them. We're accreting them.
+
+Nobody is forced, nobody is harmed, we're just simply cheaper and better and compete in ways that nobody can really compete with yet. And we build the ecosystem intentionally in a way that anyone can build their own modules and build use cases on top of it.
+
+Slowly, and then all at once.
+
+![alt text](modules-over-12m.png)
+
+It accretes.
+
+> Number of Modules (blue line): The growth in the number of modules is exponential, starting with just 10 modules and rising to 3,427 by month 12. 
+
+> This reflects the accelerating pace at which developers and users are building and sharing their JavaScript-based apps within the ecosystem. Each new module adds more functionality and extends the reach of Riff's Orbiter system.
+
+> Number of Lenses (orange line): The number of lenses also grows exponentially, starting at 5 and reaching 432 lenses by month 12. Each lens can accrete modules and potentially other lenses, allowing users and organizations to build rich, multi-layered ecosystems that interconnect and enhance functionality across the network.
+
+Once we truly launch the Pioneer Ecosystem, we'll very quickly see a hockey stick effect that only gets faster and faster and faster with everyone who joins.
+
+And it forces a **positive sum game** for everyone involved. Cheaper and better than anything else, encouraging open and free collaboration but allowing for private collaboration.
+
+Compatible with existing power structures and relationships, but not dependent on them.
+
+It makes sites like Tumblr possible to run today at effectively zero cost - which means no ads, and soon sites like Spotify are possible to run at effectively zero cost too.
+
+One day, sites as large as Netflix and Facebook will be possible to make Orbiter alternatives to, and they'll be cheaper and better than anything else. Nearly completely free.
+
+And this technology is real *today*.
+
+### The Accretion is Complete
+
+![alt text](a-post-accretion.webp)
+
 Before long, we have accreted just about 80% of the use cases that most people would want. At minimum, almost any company would find us interesting - especially if we can make it so they can use it to build their own internal tools.
 
 And now anyone in the world - now revealed as not just any person - any company - any entity or group - any project - even any government - can use it to build an extremely powerful and personal front page showing everything they care about and/or love or want to identify with.
@@ -501,12 +535,17 @@ Moreover, we can allow users to use our CDN and gateway for their own Lenses, el
 
 Users using our CDN and gateway will be charged not to pay for it, but to make sure they are not simply abusing it to spread bad content - it's a verification thing, not a money making thing.
 
+### Going Vertical
+![alt text](everyone.png)
+
 So we make a hosting service on top, where we'll give you a click-to-buy Lens, and all a user will pay for is:
 
 * A tiny amount of storage, 100MB or so, to enable their Lens
 * Enough bandwidth to support their use case
 * If they want to bring their own domain, the cost of that
 * If they use our domain (nameoflens.pioneer.eco) they'll pay nothing for DNS/Domain costs.
+
+Your very own Lens, forever. As long as you behave according to our ToS.
 
 This could plausibly be as low as $50 a year for any user who wants *their own custom and personal domain* and as low as *$10 a year* for anyone else.
 
@@ -526,6 +565,10 @@ They get automatic upgrades, for free, forever, as long as anyone cares enough t
 
 and they get a system that lets them **collaborate seamlessly**.
 
+The final unfairness - *anyone* can run this kind of service at this point, too, and **we will actively help them to do so if they want to**.
+
+Instantly, an entire new market opens up allowing people a true freedom of choice never really available before.
+
 ## The Collaboration
 Think about what this now does for collaboration.
 
@@ -544,8 +587,187 @@ Countries to work with each other for the common good, building shared papers an
 
 From here, we start to see what this truly is - not just yet, but close - a ***collaboration engine***.
 
+# Things Get Weird
+From here, we don't really know what happens next, but we are starting to see something.
+
 ## The Collaboration Engine
-Once the Pioneer Ecosystem takes hold, we start to see people in a situation where a strange thing has occurred - the incentives for 
+Once the Pioneer Ecosystem takes hold, we start to see people in a situation where a strange thing has occurred - the incentives for everyone involved are *aligned*.
+
+Incentive Alignment simply means that the needs of the users and the needs of the hosts of the website or Lens are aligned in such a way that the user is truly getting what they need, and the host is truly getting something they need in return.
+
+The short way to put it is, incentive alignment is critical because it means **you are not the product** - in direct contrast to the current enshittification the Internet seems to be going through and terminally suffering.
+
+But it's more than the Internet.
+
+## The World's First Collaboration Engine
+A collaboration engine allows parties - who may not even know or trust each other - to work together seamlessly on common goals.
+
+Already, with Defederation providing a seamless way to work together - to do science, to reduce social issues and improve education - all the things that start to bring people together inherently. That might almost be enough.
+
+But if you work on something with someone, and they dislike you or your actions, they can exit and simply defederate at no penalty. This is great! But the problem is "defederation" is a global action. It's got a lot of gravitas to it!
+
+What if defederation was the norm, and everyone was used to people just coming and going from any company or power relationship when it stops suiting them?
+
+What if you could work with someone, and if they did something you didn't like, you could just leave them and go work with someone else?
+
+What if you could *keep working with them on the things you still agree on*?
+
+This simple change to Defederation makes it the first of its kind - an engine for forcing collaborative, positive sum games among even your worst enemies and most bitter rivalries.
+
+In short, the miracle of collaboration that once occurred between Turkey and Greece - now famous as [Earthquake Diplomacy](https://en.wikipedia.org/wiki/Greek%E2%80%93Turkish_earthquake_diplomacy) - now occurs between everyone. ALL THE TIME.
+
+Of course, people will always find ways to find conflict with another. But it's genuinely very hard to hate your neighbour when you know they saved your nephew's life. Or created your favourite song.
+
+Simply put, it's cheaper, easier and better to participate and work together in ALL cases.
+
+## What does the Prisoner's Dilemma now look like?
+
+Enter the classic Game Theory classic - the Prisoner's Dilemma.
+
+In the Prisoner's Dilemma, two people are arrested for a crime. They are taken in for separate interrogations. The police tell them they can either:
+
+* Cooperate, and they both get 3 years if either defects
+* Defect, and they both get 1 year if both defect
+
+If both cooperate, they will both go free with no consequences.
+
+Despite the fact that the best move for everyone involved is to cooperate, the best move for each individual based on their risk factors, their incentive alignment and their own personal interest - is to defect.
+
+Both know they'll hurt both parties if they defect, but they both do the math, and even if one of them decides to do the "right" thing, at least one will probably lead to both parties being screwed.
+
+But now we've flipped this. We've made the first **Inverse Prisoner's Dilemma**.
+
+## The Perfect Game Theory
+Defederation is a form of "perfect game theory". In all cases, the best move for everyone is to cooperate. Always.
+
+### Bad behaviour is punished
+In Defederation, bad behaviour is punished in a way you might not expect.
+
+Word spreads fast. As a peer-to-peer network, you can easily have a reputation system that runs along the rails of Defederation. Adding such a network, which we have a design for that we've already taken to logical conclusions, means that bad behaviour is punished in a way that is very hard to live with, yet not unfair and entirely self-correcting and self-inflicted.
+
+Bad actors such as hateful groups are quickly and safely isolated and ostracised out to their own corners - only able to play in Lenses that they control themselves or that are controlled by likeminded groups. This sounds like putting all the bad eggs together - and it is - but it also accretes so much power and value into the good actors and gives them such overwhelming advantage that they can easily out-compete the bad actors.
+
+In such a system, everyone who wants to be part of the real world must play by at least the rules of the people or groups they want to work with.
+
+### Punishment is swift and severe
+Any bad behaviour can be punished instantly and severely - if you do something horrifically bad in this system, you will instantly start to be defederated, severed from the network of people who were angry at your actions.
+
+Without any central authority to meter your punishment, you are silently and carefully extracted from the ecosystem. Your contributions are not deleted, but you are no longer part of the world you were.
+
+### And yet
+This system is not actually harsh. It is actually quite soft.
+
+People are simply allowed to leave. They are not punished. They are not even made to feel bad. They are simply allowed to leave.
+
+In such a system, the punishment is self-inflicted and completely fair and voluntary - the perfect embodiment of the classic "FAFO" ("and find out") idea.
+
+Sybil attacks, previously thought impossible to solve and defend against, are essentially impossible.
+
+![A misbehaving set of nodes is ejected gently from reality](adam/inspiration/file-2Jjg273y2gBKy1aOddMpdoej.png)
+
+### Fair and balanced and voluntary
+In such a system, even the worst punishment simply means you are so damaged reputationally that you do not ever want to be exposed to it, yet nobody has to use any form of force or harm to make you behave.
+
+Some will still cause issues, but they will be so few and far between that they will be easy to deal with.
+
+The other interesting property here is **the lack of universal morality** - compatible with all existing structures, yet not beholden to any of them. Simply because someone rejected you and defederated you, you are not forced to change your beliefs or actions.
+
+If the groups you work with are okay with what you've done, and those who they associate with are okay with it too, your actions will always be fine.
+
+And if you don't find that works well, you can simply find some other group to go to.
+
+**Freedom of association** as a protocol and technology, encoded now into the very fabric of collaboration.
+
+### Privacy
+In such a system where you are no longer the product, the *incentive alignment* says you no longer need aggressive tracking to make advertisement work. You don't need advertisements at all any more.
+
+Lenses could in theory put in ads, but honestly, their users will usually then just flock to Lenses who don't use advertising.
+
+End-to-end encryption for most use cases gives people an assurance of true privacy.
+
+So really, at that point there's no need for any sort of privacy invasion.
+
+***Which makes the flywheel even more unfair, because now we're faster and lighter than any of the centralised alternatives.***
+
+For people in the third world, or poor areas, really any person with a lower-than-midrange spec laptop or device - we are now the best possible option, automatically, simply because of the incentive alignment.
+
+### Making It Real: From Collaboration Tool to The First Collaboration Engine
+Simply put, this is the final part of the puzzle - by making sure this system is a fair and powerful ecosystem, which anyone can be any part of - and then ***making Defederation be a lighter and less dramatic action by allowing people to defederate along a particular topic instead of an entire entity***....
+
+We build the first ever collaboration engine.
+
+### The implications for the world
+Such an engine would beautifully start to solve so many of the world's problems.
+
+In less time than one might think.
+
+* Thanks to "Earthquake Diplomacy" now being seamless and easy, we'll see some of the worst and longest conflicts in history begin to abate and resolve as parties begin to find common ground.
+
+* Thanks to better science collaboration, slowly we'd see the entire current scientific community slowly transition from the current slow and heavily controlled and owned system,
+towards a system that is open, collaborative and global. 
+
+The impact on science would be profound within **months, not years**.
+
+* Thanks to better education, we'll see the world's education systems start to transition from the current slow, controlled and biased system, towards a system that is open, collaborative and global. It will be normal to work on a course with people from around the world.
+
+In short, the best summary for technical people is this is just "Git but for entire societies", but to really send it home for you:
+
+* Continuous, open-source, global, collaborative development of all the things.
+* Forking and merging of efforts, effortlessly, on a global scale.
+* Communities that can build in minutes from thousands of lenses.
+* The ability to fork and merge entire societies, and to do so effortlessly.
+
+Very quickly, the dream of the Network State becomes a reality - but not a single one that becomes a source of power and oppression and could have the potential to be a totalitarian nightmare - a million powerful Network States begin at similar times, ensuring nobody can ever seize power, and the very nature of Defederation is now also made clear - 
+
+it tends to reduce centralisation over time as an inevitability, because the best ideas and the best people will naturally congregate but not be centrally controlled, available to everyone. While clusters will form as ever, the zero (and in many cases BELOW ZERO) exit cost means anyone can compete with anyone on a level playing field.
+
+Capitalism works well under this system, eliminating most of the concerns of "late stage capitalism" by eliminating the zero sum game entirely, but allowing the positive aspects of productive capitalism to still help and improve everything.
+
+Systems of democracy benefit under this system, able to improve the efficiency of bureaucracy, and everything slowly and then faster and faster becomes more efficient and fair.
+
+Entire societies can reshape and transition, slowly and without harm, to a more fair, voluntary and productive system.
+
+And so on.
+
+### The end of force?
+This is the most significant change of all.
+
+With this new system, the need for force to maintain order disappears entirely.
+
+Anyone who uses force to maintain order is quickly ostracised and defederated.
+
+It won't happen overnight, but eventually the need for force is gone.
+
+Peace and order can now be maintained with a voluntary system, with self-correcting and self-enforced punishment that is privacy-respecting, gives everyone full autonomy (more than the current systems!) and so powerful that in practice just about nobody will ever really want to use force again once this becomes normal.
+
+Such a world is hard to imagine, but think about it - if you never ever needed to hurt or harm someone again, would you still find reasons to do so? Really think about it.
+
+# What Comes Next?
+Now we've made the first **cooperation engine** and we've built it from first principles in front of you. 
+
+It is real, and it works, and it is potentially the most significant contribution we'll make to the world.
+
+Rather than fighting the existing power and money in society, this **absorbs, accretes and eventually diffuses it** - and the peoople who benefit most is at first the existing power holders!
+
+In such a system, everyone's only winning move is to play.
+
+# What can you do to help?
+* Get started with The Riff Project. Join and follow our story at https://riff.cc and help us build the first ever open-source, global, collaborative, decentralized, censorship-resistant, end-to-end encrypted, collaborative media platform.
+
+* Join the conversation on Matrix - #riffcc:matrix.org.
+
+* Share this document.
+
+* Tell us what you think.
+
+We'll be slowly building the Pioneer Ecosystem, then one day so much more.
+
+If you're a company thinking about getting an Orbiter Module developed, we'd love to hear from you - contact Bill or Wings from our team or email wings@riff.cc for more details.
+
+There's one final treat for you.
+
+# Things Get Truly Weird
+In Part 2, we'll look at some of the truly weird things that this might enable. And we'll explore the *nature of the universe*, and the wildest theory ever written, based on this Defederation idea.
 
 # Original text that is being adapted follows and is not "part" of this.
 
