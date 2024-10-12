@@ -3,105 +3,98 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Thought Network</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <title>Thought Network Visualization</title>
     <style>
-        body, html {
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-        }
-        canvas {
-            display: block;
-        }
+        body { margin: 0; }
+        canvas { display: block; }
     </style>
 </head>
 <body>
-    <script>
-        let thoughts = [];
-        let zoomFactor = 1;
-        let offsetX = 0, offsetY = 0;
-        let dragStartX, dragStartY;
-        let isDragging = false;
+    <div id="network-vis"></div>
+    <script type="module">
+        import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.155.0/build/three.module.js';
+        import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.155.0/examples/jsm/controls/OrbitControls.js';
+        import { io } from 'https://cdn.socket.io/4.0.1/socket.io.esm.min.js';
 
-        function setup() {
-            createCanvas(windowWidth, windowHeight);
-            let socket = io.connect(window.location.origin);
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.getElementById('network-vis').appendChild(renderer.domElement);
 
-            socket.on('network_update', (data) => {
-                thoughts = data.thoughts;
-            });
+        // Add OrbitControls
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.25;
+        controls.screenSpacePanning = false;
+        controls.maxDistance = 500;
+        controls.minDistance = 1;
 
-            // Panning with mouse drag
-            canvas.addEventListener('mousedown', (event) => {
-                dragStartX = event.clientX;
-                dragStartY = event.clientY;
-                isDragging = true;
-            });
+        const nodes = new THREE.Group();
+        const links = new THREE.Group();
+        scene.add(nodes);
+        scene.add(links);
 
-            canvas.addEventListener('mouseup', () => {
-                isDragging = false;
-            });
+        camera.position.z = 10;
 
-            canvas.addEventListener('mousemove', (event) => {
-                if (isDragging) {
-                    offsetX += (event.clientX - dragStartX) / zoomFactor;
-                    offsetY += (event.clientY - dragStartY) / zoomFactor;
-                    dragStartX = event.clientX;
-                    dragStartY = event.clientY;
-                }
-            });
+        // Add lights
+        const ambientLight = new THREE.AmbientLight(0x404040);
+        scene.add(ambientLight);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+        directionalLight.position.set(1, 1, 1);
+        scene.add(directionalLight);
 
-            // Zooming with mouse wheel
-            canvas.addEventListener('wheel', (event) => {
-                let zoomSensitivity = 0.001;
-                let zoomDelta = event.deltaY * zoomSensitivity;
-                let newZoom = zoomFactor * (1 - zoomDelta);
+        const socket = io();
 
-                // Zoom about the mouse position
-                let mx = (mouseX - offsetX) / zoomFactor;
-                let my = (mouseY - offsetY) / zoomFactor;
-
-                offsetX -= mx * (newZoom - zoomFactor);
-                offsetY -= my * (newZoom - zoomFactor);
-
-                zoomFactor = newZoom;
-            });
-        }
-
-        function draw() {
-            background(255);
-            scale(zoomFactor);
-            translate(offsetX, offsetY);
-            drawThoughts();
-        }
-
-        function drawThoughts() {
-            for (let thought of thoughts) {
-                // Draw connections
-                for (let connectionId of thought.connections) {
-                    let target = thoughts.find(t => t.id === connectionId);
-                    if (target) {
-                        stroke(0, 100);
-                        line(thought.x, thought.y, target.x, target.y);
-                    }
-                }
-
-                // Draw thoughts
-                fill(thought.color);
-                noStroke();
-                ellipse(thought.x, thought.y, thought.radius * 2);
-                
-                fill(0);
-                textAlign(CENTER, CENTER);
-                text(thought.concept, thought.x, thought.y);
+        socket.on('network_update', function(data) {
+            // Clear existing nodes and links
+            while (nodes.children.length > 0) {
+                nodes.remove(nodes.children[0]);
             }
-        }
+            while (links.children.length > 0) {
+                links.remove(links.children[0]);
+            }
 
-        function windowResized() {
-            resizeCanvas(windowWidth, windowHeight);
+            // Add new nodes
+            data.nodes.forEach(node => {
+                const geometry = new THREE.SphereGeometry(0.2, 32, 32);
+                const material = new THREE.MeshPhongMaterial({ color: new THREE.Color(node.trust, 0, 1 - node.trust) });
+                const sphere = new THREE.Mesh(geometry, material);
+                sphere.position.set(
+                    Math.random() * 8 - 4,
+                    Math.random() * 8 - 4,
+                    Math.random() * 8 - 4
+                );
+                sphere.userData = { id: node.id, concept: node.concept };
+                nodes.add(sphere);
+            });
+
+            // Add new links
+            data.links.forEach(link => {
+                const sourceNode = nodes.children.find(node => node.userData.id === link.source);
+                const targetNode = nodes.children.find(node => node.userData.id === link.target);
+                if (sourceNode && targetNode) {
+                    const geometry = new THREE.BufferGeometry().setFromPoints([sourceNode.position, targetNode.position]);
+                    const material = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: link.strength });
+                    const line = new THREE.Line(geometry, material);
+                    links.add(line);
+                }
+            });
+        });
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
         }
+        animate();
+
+        // Handle window resizing
+        window.addEventListener('resize', function() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
     </script>
 </body>
 </html>
