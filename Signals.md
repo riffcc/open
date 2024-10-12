@@ -31,7 +31,13 @@ but are now so much better and bigger than anything I could have imagined.
 
 Thanks for reading so far, enjoy the ride.
 
-~ Wings (Founder, The Riff Project)
+In a short, fictional future, grounded in the reality of today,
+
+We will show you something.
+
+E cinere, surgemus.
+
+~ Wings
 
 ## Simple goals
 We want to make a system that uses novel ideas and technology to make it easier and easier for people, companies, governments, and other organizations to collaborate.
@@ -53,6 +59,119 @@ There is no authority, no central points of failure, no centre to the project -
 not even Riff.CC, The Riff Project or Riff Labs is ultimately necessary
 to make this system work once we have built an ecosystem that is self sustaining.
 
+How does this let you build a different kind of website - a lens - and from that a different kind of internet - and even maybe something more?
+
+The implications get wild.
+
+## The Defederation Model
+The core of this entire concept is a cooperative protocol called the Defederation Protocol. Much in the way "copyleft" exploits copyright to further freedom instead of limit it, Defederation exploits the concept of federation in an unintuitive inverse tradeoff, to further freedom instead of limiting it.
+
+This is achieved with a combination of a cooperative protocol and a new kind of network structure.
+
+It might be most useful, however, to start by thinking about what a normal internet website might look like.
+
+### The Library shall not fall again.
+Every library in history has fallen or, at some point, will fall.
+
+However, digital libraries should in theory be impervious - as something that can be copied endlessly, why should we ever accept the total loss of one?
+
+While that is a noble and reasonable thought, it does not reflect reality.
+
+Data is hard to move, by definition, and metadata even harder - then databases and user data even worse. In its totality, shifting a website just among its own owner from one side of the United States to the other should be as easy as a matter of minutes, but in practice it is a monumental task, for a company of any sufficient size. And maybe even especially for small ones.
+
+So when a website is threatened, what happens? Could you build the immortal Library - with the capital L?
+
+How?
+
+### A Normal Website
+Let's explore a simple website - ftwc.xyz. In reality, ftwc.xyz is our test lens, used for helping prove the Defederation Model and Protocol, but in this example, we'll pretend it's a normal website.
+
+ftwc.xyz - "for those who create" - is a website about creativity.
+
+We'll say they have 1 million users.
+
+It has fifty thousand videos on it. With an average size of about 4GiB each, this means it has to keep track of about 200TiB of data. This is a significant expense for a normal website - and it's only going to get bigger.
+
+Any seriously large video website will have even bigger problems than this, but you can already tell this is going to be a bag of hurt in terms of cost.
+
+If they need to keep useful copies of the website active, they'll need block storage - not object storage. Object storage is a good solution in a lot of cases, but for ftwc.xyz, it's a non-starter. They have to encode their videos sometimes, and that means S3 becomes a pain, not a blessing.
+
+Furthering that, they have to cope with sustained bursts of heavy traffic from legitimate users. So they need to keep a lot of servers online.
+
+Thirty 1U servers, each within a 42U rack, could be a pretty normal setup for a website of this size.
+
+On top of that, they might even resort to distributed storage, such as Ceph, increasing cost and complexity further.
+
+At least three loadbalancers are required to reach a quorum that allows them to keep everything online even if a machine fails. They have to get enteprise grade everything, and invest in extremely expensive network cards. Extremely expensive SSDs.
+
+Not only that, they need to keep enough copies of all of these videos to keep them at useful, stable speeds even with lots of people trying to watch them at once. 
+
+They need a CDN like Cloudflare to keep them up and online through high load and DDoS attacks.
+
+And they need to keep track of all of this metadata, and the databases that make it all work.
+
+So they need database servers - and they'll need three for MySQL or PostgreSQL and just about any database with consistency and high availability.
+
+They'll need webservers, and of course, three - for high availability.
+
+They'll need to have, at minimum, triple redundant networking gear, absolutely ridiculous levels of redundancy at every level - remember, with a million users, the stakes are high.
+
+Heck, they even need Ceph storage, because their use case is very specific. So it gets even harder, because not only is Ceph complicated - it's practically a fulltime job to keep it running.
+
+So they invest, and invest, and invest and tune, and one day, at the busiest peak of the season, their website goes down.
+
+The database server just failed, and they have no redundancy. Not only that, they might not even have backups.
+
+In short...
+
+![alt text](holysh.webp)
+
+And that wasn't even the point we actually need to talk about - the cost!
+
+Triple redundancy at every level, and you're looking at a quarter of a million dollars a year. Just to keep the lights on.
+
+That may not even include staffing, and other costs. Administration overhead. Security training and services. Firewalls. Enterprise licenses for everything. VMware or OpenStack.
+
+So great, they either go out of business, or hopefully they had backups - which, thank goodness, they did.
+
+But now they have to rebuild.
+
+And so this website, which as a reminder consists of:
+- 50,000 videos
+- 30 webservers
+- 3 loadbalancers
+- 3 database servers
+- 3 racks of servers
+- 10 Ceph servers (to run the storage - at an approximate cost of $100,000 a year)
+- 200TiB of data plus replication (~500TiB total, costing $100,000 a year alone)
+
+So redundant, so powerful, designed never to fail and now...
+
+Has to be rebuilt.
+
+### So The Normal Website Rebuilds
+They restore everything, but when they bring the site back up, they have another problem. Nothing will load. They look into it and quickly realize the problem - someone moved the files. Everything is now on a different server, and they don't even know which one - or why - and now they're down until they figure out where it is.
+
+At this point they start crawling their entire infrastructure to try and find out what happened. Eventually they find the files and restore them, but by this point it's an international incident. Governments actually had private contracts with this website to host training videos and other important internal video material for their employees. Now they're down, and angry.
+
+What went wrong?
+
+Well, it's mostly this:
+
+`https://myfavouritewidgets.corporate/files/videos/wp-20240920-final-final6.mp4`
+
+Specifically, it's this bit - `myfavouritewidgets.corporate` - and this bit - `/files/videos/` - and this bit `https` - and this bit - `wp-20240920-final-final6.mp4` - because, are you getting it yet 😱 any of these changing in any way at any time will break the entire website.
+
+If it's a file that matters, boom, you have an outage and pissed off users. 🙀
+
+So what can we do differently here?
+
+### Enter Challenger 1: BitTorrent
+BitTorrent provides a partial improvement to this. By allowing people to directly help participate in hosting and distributing the files for my website, now I can strike off some cost.
+
+Instantly, nearly half of the cost is gone.
+
+That's huge! But you still have a major problem
 
 # Original text that is being adapted follows and is not "part" of this.
 

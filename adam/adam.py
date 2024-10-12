@@ -15,6 +15,9 @@ import logging
 import networkx as nx
 import matplotlib.pyplot as plt
 from collections import Counter
+import numpy as np
+from vispy import app, scene
+from vispy.visuals import transforms
 
 # Configure logging to a file
 logging.basicConfig(filename='thought_network_interactions.log', level=logging.INFO, 
@@ -28,6 +31,7 @@ class Thought:
         self.connections = {}  # Dictionary of connected Thoughts and their connection strengths
         self.occurrences = 1  # Number of times this concept has been encountered
         self.metadata = {}  # Additional metadata for the thought
+        self.reviews = {}
 
     def to_dict(self):
         return {
@@ -51,6 +55,16 @@ class Thought:
             self.trust = max(0.0, self.trust - decay_rate)
             self.last_activity = time.time()
 
+    def review_interaction(self, other_thought, feedback):
+        if other_thought.id not in self.reviews:
+            self.reviews[other_thought.id] = []
+        self.reviews[other_thought.id].append(feedback)
+
+    def evaluate_trust(self, other_thought):
+        if other_thought.id in self.reviews:
+            reviews = self.reviews[other_thought.id]
+            trust_score = sum(reviews) / len(reviews)
+            self.connections[other_thought] = trust_score
 
 class ThoughtNetwork:
     def __init__(self, db_path='thoughts.db'):
@@ -278,11 +292,50 @@ class ThoughtNetwork:
             return True
         return False
 
+    def broadcast_review(self, thought, review):
+        for other_thought in self.thoughts.values():
+            if other_thought != thought:
+                other_thought.receive_review(thought, review)
+
+    def filter_reviews(self, thought):
+        # Example filter: Only consider reviews from direct connections
+        return {t_id: reviews for t_id, reviews in thought.reviews.items() if t_id in thought.connections}
+
+class ThoughtVisualizer:
+    def __init__(self, thought_network):
+        self.thought_network = thought_network
+        self.canvas = scene.SceneCanvas(keys='interactive', show=True)
+        self.view = self.canvas.central_widget.add_view()
+        self.view.camera = 'turntable'
+        self.scatter = scene.visuals.Markers()
+        self.view.add(self.scatter)
+        self.lines = []
+
+    def update_visualization(self):
+        # Clear existing lines
+        for line in self.lines:
+            self.view.remove(line)
+        self.lines = []
+
+        # Get positions and connections
+        positions = []
+        for thought in self.thought_network.thoughts.values():
+            x, y, z = np.random.rand(3) * 10  # Random positions for simplicity
+            positions.append((x, y, z))
+            for connected in thought.connections:
+                line = scene.visuals.Line(pos=np.array([(x, y, z), np.random.rand(3) * 10]), color='lightblue')
+                self.view.add(line)
+                self.lines.append(line)
+
+        # Update scatter plot
+        self.scatter.set_data(np.array(positions), face_color='gold', size=10)
+
+    def run(self):
+        self.update_visualization()
+        app.run()
+
 app = Flask(__name__, static_folder='static')
 socketio = SocketIO(app, cors_allowed_origins="*")
-
-# Create a global instance of ThoughtNetwork
-network = ThoughtNetwork()
 
 @app.route('/')
 def index():
@@ -327,6 +380,15 @@ def terminal_interface():
         network.emit_network_state()
 
 if __name__ == '__main__':
+    # Create a global instance of ThoughtNetwork
+    network = ThoughtNetwork()
+
+    # Start the visualization
+    visualizer = ThoughtVisualizer(network)
+    visualizer_thread = threading.Thread(target=visualizer.run)
+    visualizer_thread.daemon = True
+    visualizer_thread.start()
+
     # Start the background network update thread
     update_thread = threading.Thread(target=update_network)
     update_thread.daemon = True
@@ -338,4 +400,4 @@ if __name__ == '__main__':
     terminal_thread.start()
 
     # Start the Flask application in the main thread
-    socketio.run(app, debug=True, use_reloader=False, port=5000)
+    socketio.run(app, debug=True, use_reloader=False, host='127.0.0.1', port=5500)

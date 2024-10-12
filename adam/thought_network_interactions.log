@@ -2444,3 +2444,77 @@ Let's try saying that together!"
 2024-10-12 02:41:22,222 - 127.0.0.1 - - [12/Oct/2024 02:41:22] "GET / HTTP/1.1" 200 -
 2024-10-12 02:44:37,439 - 127.0.0.1 - - [12/Oct/2024 02:44:37] "GET / HTTP/1.1" 200 -
 2024-10-12 02:44:38,080 - 127.0.0.1 - - [12/Oct/2024 02:44:38] "GET / HTTP/1.1" 200 -
+2024-10-12 02:50:56,588 - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2024-10-12 02:50:56,588 - [33mPress CTRL+C to quit[0m
+2024-10-12 02:52:09,762 - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2024-10-12 02:52:09,762 - [33mPress CTRL+C to quit[0m
+2024-10-12 02:53:32,816 - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2024-10-12 02:53:32,816 - [33mPress CTRL+C to quit[0m
+2024-10-12 02:55:39,811 - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5500
+2024-10-12 02:55:39,811 - [33mPress CTRL+C to quit[0m
+2024-10-12 02:55:42,928 - 127.0.0.1 - - [12/Oct/2024 02:55:42] "GET / HTTP/1.1" 200 -
+2024-10-12 02:55:43,454 - 127.0.0.1 - - [12/Oct/2024 02:55:43] "GET /socket.io/?EIO=4&transport=polling&t=P9-S5AQ HTTP/1.1" 200 -
+2024-10-12 02:55:43,456 - 127.0.0.1 - - [12/Oct/2024 02:55:43] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2024-10-12 02:55:43,507 - 127.0.0.1 - - [12/Oct/2024 02:55:43] "POST /socket.io/?EIO=4&transport=polling&t=P9-S5CB&sid=AmBMnYo8cW9YWgHyAAAA HTTP/1.1" 200 -
+2024-10-12 02:55:43,509 - 127.0.0.1 - - [12/Oct/2024 02:55:43] "GET /socket.io/?EIO=4&transport=polling&t=P9-S5CC&sid=AmBMnYo8cW9YWgHyAAAA HTTP/1.1" 200 -
+2024-10-12 02:56:29,354 - 127.0.0.1 - - [12/Oct/2024 02:56:29] "GET /socket.io/?EIO=4&transport=websocket&sid=AmBMnYo8cW9YWgHyAAAA HTTP/1.1" 200 -
+2024-10-12 02:56:29,395 - 127.0.0.1 - - [12/Oct/2024 02:56:29] "GET / HTTP/1.1" 200 -
+2024-10-12 02:56:29,966 - 127.0.0.1 - - [12/Oct/2024 02:56:29] "GET /socket.io/?EIO=4&transport=polling&t=P9-SGXY HTTP/1.1" 200 -
+2024-10-12 02:56:30,041 - 127.0.0.1 - - [12/Oct/2024 02:56:30] "POST /socket.io/?EIO=4&transport=polling&t=P9-SGZF&sid=gTA2RC5lRqH_ml56AAAC HTTP/1.1" 200 -
+2024-10-12 02:56:30,041 - 127.0.0.1 - - [12/Oct/2024 02:56:30] "GET /socket.io/?EIO=4&transport=polling&t=P9-SGZF.0&sid=gTA2RC5lRqH_ml56AAAC HTTP/1.1" 200 -
+2024-10-12 02:56:30,132 - 127.0.0.1 - - [12/Oct/2024 02:56:30] "GET /socket.io/?EIO=4&transport=polling&t=P9-SGZd&sid=gTA2RC5lRqH_ml56AAAC HTTP/1.1" 200 -
+2024-10-12 02:57:20,423 - 127.0.0.1 - - [12/Oct/2024 02:57:20] "GET /socket.io/?EIO=4&transport=websocket&sid=gTA2RC5lRqH_ml56AAAC HTTP/1.1" 200 -
+2024-10-12 02:57:20,455 - 127.0.0.1 - - [12/Oct/2024 02:57:20] "GET / HTTP/1.1" 200 -
+2024-10-12 02:57:20,760 - 127.0.0.1 - - [12/Oct/2024 02:57:20] "GET /socket.io/?EIO=4&transport=polling&t=P9-SSxa HTTP/1.1" 200 -
+2024-10-12 02:57:20,850 - 127.0.0.1 - - [12/Oct/2024 02:57:20] "POST /socket.io/?EIO=4&transport=polling&t=P9-SSym&sid=jeoAk2-gV9MZK3l9AAAE HTTP/1.1" 200 -
+2024-10-12 02:57:20,850 - 127.0.0.1 - - [12/Oct/2024 02:57:20] "GET /socket.io/?EIO=4&transport=polling&t=P9-SSyn&sid=jeoAk2-gV9MZK3l9AAAE HTTP/1.1" 200 -
+2024-10-12 02:57:40,040 - 127.0.0.1 - - [12/Oct/2024 02:57:40] "GET /socket.io/?EIO=4&transport=websocket&sid=jeoAk2-gV9MZK3l9AAAE HTTP/1.1" 200 -
+2024-10-12 02:57:40,076 - 127.0.0.1 - - [12/Oct/2024 02:57:40] "GET / HTTP/1.1" 200 -
+2024-10-12 02:57:40,393 - 127.0.0.1 - - [12/Oct/2024 02:57:40] "GET /socket.io/?EIO=4&transport=polling&t=P9-SXkK HTTP/1.1" 200 -
+2024-10-12 02:57:40,470 - 127.0.0.1 - - [12/Oct/2024 02:57:40] "GET /socket.io/?EIO=4&transport=polling&t=P9-SXlB&sid=TO-rSWHRDisi66aqAAAG HTTP/1.1" 200 -
+2024-10-12 02:57:40,471 - 127.0.0.1 - - [12/Oct/2024 02:57:40] "POST /socket.io/?EIO=4&transport=polling&t=P9-SXlA&sid=TO-rSWHRDisi66aqAAAG HTTP/1.1" 200 -
+2024-10-12 02:58:31,042 - 127.0.0.1 - - [12/Oct/2024 02:58:31] "GET /socket.io/?EIO=4&transport=websocket&sid=TO-rSWHRDisi66aqAAAG HTTP/1.1" 200 -
+2024-10-12 02:58:31,105 - 127.0.0.1 - - [12/Oct/2024 02:58:31] "GET / HTTP/1.1" 200 -
+2024-10-12 02:58:31,459 - 127.0.0.1 - - [12/Oct/2024 02:58:31] "GET /socket.io/?EIO=4&transport=polling&t=P9-SkC2 HTTP/1.1" 200 -
+2024-10-12 02:58:31,570 - 127.0.0.1 - - [12/Oct/2024 02:58:31] "POST /socket.io/?EIO=4&transport=polling&t=P9-SkD2&sid=Lf3pBOjIpc7bU5P7AAAI HTTP/1.1" 200 -
+2024-10-12 02:58:31,572 - 127.0.0.1 - - [12/Oct/2024 02:58:31] "GET /socket.io/?EIO=4&transport=polling&t=P9-SkD3&sid=Lf3pBOjIpc7bU5P7AAAI HTTP/1.1" 200 -
+2024-10-12 02:58:38,862 - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5500
+2024-10-12 02:58:38,862 - [33mPress CTRL+C to quit[0m
+2024-10-12 02:58:38,940 - 127.0.0.1 - - [12/Oct/2024 02:58:38] "GET / HTTP/1.1" 200 -
+2024-10-12 02:58:39,371 - 127.0.0.1 - - [12/Oct/2024 02:58:39] "GET / HTTP/1.1" 200 -
+2024-10-12 02:58:39,497 - 127.0.0.1 - - [12/Oct/2024 02:58:39] "GET / HTTP/1.1" 200 -
+2024-10-12 02:58:39,656 - 127.0.0.1 - - [12/Oct/2024 02:58:39] "GET / HTTP/1.1" 200 -
+2024-10-12 02:58:39,677 - 127.0.0.1 - - [12/Oct/2024 02:58:39] "GET /socket.io/?EIO=4&transport=polling&t=P9-SmAv HTTP/1.1" 200 -
+2024-10-12 02:58:39,887 - 127.0.0.1 - - [12/Oct/2024 02:58:39] "GET /socket.io/?EIO=4&transport=polling&t=P9-SmFo HTTP/1.1" 200 -
+2024-10-12 02:58:39,960 - 127.0.0.1 - - [12/Oct/2024 02:58:39] "POST /socket.io/?EIO=4&transport=polling&t=P9-SmG_&sid=BjZ_5z28PWGiAxlsAAAB HTTP/1.1" 200 -
+2024-10-12 02:58:39,961 - 127.0.0.1 - - [12/Oct/2024 02:58:39] "GET /socket.io/?EIO=4&transport=polling&t=P9-SmG_.0&sid=BjZ_5z28PWGiAxlsAAAB HTTP/1.1" 200 -
+2024-10-12 02:58:40,032 - 127.0.0.1 - - [12/Oct/2024 02:58:40] "GET /socket.io/?EIO=4&transport=polling&t=P9-SmHh&sid=BjZ_5z28PWGiAxlsAAAB HTTP/1.1" 200 -
+2024-10-12 03:04:55,910 - 127.0.0.1 - - [12/Oct/2024 03:04:55] "GET /socket.io/?EIO=4&transport=websocket&sid=BjZ_5z28PWGiAxlsAAAB HTTP/1.1" 200 -
+2024-10-12 03:04:57,146 - 127.0.0.1 - - [12/Oct/2024 03:04:57] "GET /socket.io/?EIO=4&transport=polling&t=P9-UCMl HTTP/1.1" 200 -
+2024-10-12 03:04:57,165 - 127.0.0.1 - - [12/Oct/2024 03:04:57] "POST /socket.io/?EIO=4&transport=polling&t=P9-UCN3&sid=OqjzFGNTtlVf6Ww9AAAD HTTP/1.1" 200 -
+2024-10-12 03:04:57,173 - 127.0.0.1 - - [12/Oct/2024 03:04:57] "GET /socket.io/?EIO=4&transport=polling&t=P9-UCN4&sid=OqjzFGNTtlVf6Ww9AAAD HTTP/1.1" 200 -
+2024-10-12 03:06:59,338 - 127.0.0.1 - - [12/Oct/2024 03:06:59] "GET /socket.io/?EIO=4&transport=websocket&sid=OqjzFGNTtlVf6Ww9AAAD HTTP/1.1" 200 -
+2024-10-12 03:06:59,381 - 127.0.0.1 - - [12/Oct/2024 03:06:59] "GET / HTTP/1.1" 200 -
+2024-10-12 03:06:59,796 - 127.0.0.1 - - [12/Oct/2024 03:06:59] "GET /socket.io/?EIO=4&transport=polling&t=P9-UgJ6 HTTP/1.1" 200 -
+2024-10-12 03:06:59,833 - 127.0.0.1 - - [12/Oct/2024 03:06:59] "POST /socket.io/?EIO=4&transport=polling&t=P9-UgJd&sid=0EbyRscvrg2Mc0Y1AAAF HTTP/1.1" 200 -
+2024-10-12 03:06:59,864 - 127.0.0.1 - - [12/Oct/2024 03:06:59] "GET /socket.io/?EIO=4&transport=polling&t=P9-UgJd.0&sid=0EbyRscvrg2Mc0Y1AAAF HTTP/1.1" 200 -
+2024-10-12 03:07:29,967 - 127.0.0.1 - - [12/Oct/2024 03:07:29] "GET /socket.io/?EIO=4&transport=websocket&sid=0EbyRscvrg2Mc0Y1AAAF HTTP/1.1" 200 -
+2024-10-12 03:07:30,021 - 127.0.0.1 - - [12/Oct/2024 03:07:30] "GET / HTTP/1.1" 200 -
+2024-10-12 03:07:30,353 - 127.0.0.1 - - [12/Oct/2024 03:07:30] "GET /socket.io/?EIO=4&transport=polling&t=P9-Unm8 HTTP/1.1" 200 -
+2024-10-12 03:07:30,439 - 127.0.0.1 - - [12/Oct/2024 03:07:30] "POST /socket.io/?EIO=4&transport=polling&t=P9-UnnC&sid=yrO79870flX0fhq9AAAH HTTP/1.1" 200 -
+2024-10-12 03:07:30,446 - 127.0.0.1 - - [12/Oct/2024 03:07:30] "GET /socket.io/?EIO=4&transport=polling&t=P9-UnnD&sid=yrO79870flX0fhq9AAAH HTTP/1.1" 200 -
+2024-10-12 03:08:28,081 - 127.0.0.1 - - [12/Oct/2024 03:08:28] "GET /socket.io/?EIO=4&transport=websocket&sid=yrO79870flX0fhq9AAAH HTTP/1.1" 200 -
+2024-10-12 03:08:28,134 - 127.0.0.1 - - [12/Oct/2024 03:08:28] "GET / HTTP/1.1" 200 -
+2024-10-12 03:08:28,418 - 127.0.0.1 - - [12/Oct/2024 03:08:28] "GET /socket.io/?EIO=4&transport=polling&t=P9-U_xj HTTP/1.1" 200 -
+2024-10-12 03:08:28,550 - 127.0.0.1 - - [12/Oct/2024 03:08:28] "POST /socket.io/?EIO=4&transport=polling&t=P9-U_yK&sid=iqyETerRAto74J13AAAJ HTTP/1.1" 200 -
+2024-10-12 03:08:28,556 - 127.0.0.1 - - [12/Oct/2024 03:08:28] "GET /socket.io/?EIO=4&transport=polling&t=P9-U_yL&sid=iqyETerRAto74J13AAAJ HTTP/1.1" 200 -
+2024-10-12 03:09:09,450 - 127.0.0.1 - - [12/Oct/2024 03:09:09] "GET /socket.io/?EIO=4&transport=websocket&sid=iqyETerRAto74J13AAAJ HTTP/1.1" 200 -
+2024-10-12 03:09:09,496 - 127.0.0.1 - - [12/Oct/2024 03:09:09] "GET / HTTP/1.1" 200 -
+2024-10-12 03:09:09,875 - 127.0.0.1 - - [12/Oct/2024 03:09:09] "GET /socket.io/?EIO=4&transport=polling&t=P9-VA38 HTTP/1.1" 200 -
+2024-10-12 03:09:10,004 - 127.0.0.1 - - [12/Oct/2024 03:09:10] "POST /socket.io/?EIO=4&transport=polling&t=P9-VA5C&sid=mf7YKnIi3ocBdLrVAAAL HTTP/1.1" 200 -
+2024-10-12 03:09:10,017 - 127.0.0.1 - - [12/Oct/2024 03:09:10] "GET /socket.io/?EIO=4&transport=polling&t=P9-VA5E&sid=mf7YKnIi3ocBdLrVAAAL HTTP/1.1" 200 -

@@ -4,28 +4,41 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Thought Network Visualization</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babylonjs/5.0.0/babylon.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
     <style>
-        body { margin: 0; }
-        canvas { display: block; }
+        html, body {
+            overflow: hidden;
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        #renderCanvas {
+            width: 100%;
+            height: 100%;
+            touch-action: none;
+        }
     </style>
 </head>
 <body>
-    <div id="network-vis"></div>
+    <canvas id="renderCanvas"></canvas>
     <script>
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer();
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        document.getElementById('network-vis').appendChild(renderer.domElement);
+        const canvas = document.getElementById("renderCanvas");
+        const engine = new BABYLON.Engine(canvas, true);
+        const scene = new BABYLON.Scene(engine);
 
-        const nodes = new THREE.Group();
-        const links = new THREE.Group();
-        scene.add(nodes);
-        scene.add(links);
+        // Create camera and light
+        const camera = new BABYLON.ArcRotateCamera("Camera", Math.PI / 2, Math.PI / 2, 5, BABYLON.Vector3.Zero(), scene);
+        camera.attachControl(canvas, true);
+        const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
 
-        camera.position.z = 5;
+        // Create node and link containers
+        const nodes = new BABYLON.TransformNode("nodes");
+        const links = new BABYLON.TransformNode("links");
+
+        // Store node positions
+        const nodePositions = {};
 
         // Initialize Socket.IO
         const socket = io();
@@ -36,54 +49,96 @@
 
         socket.on('network_update', function(data) {
             console.log('Received network update:', data);
-            // Clear existing nodes and links
-            while(nodes.children.length > 0) {
-                nodes.remove(nodes.children[0]);
-            }
-            while(links.children.length > 0) {
-                links.remove(links.children[0]);
-            }
+            // Clear existing links
+            links.getChildren().forEach(link => link.dispose());
 
-            // Add new nodes
+            // Update nodes
             data.nodes.forEach(node => {
-                const geometry = new THREE.SphereGeometry(0.1, 32, 32);
-                const material = new THREE.MeshBasicMaterial({ color: new THREE.Color(node.trust, 0, 1-node.trust) });
-                const sphere = new THREE.Mesh(geometry, material);
-                sphere.position.set(
-                    Math.random() * 4 - 2,
-                    Math.random() * 4 - 2,
-                    Math.random() * 4 - 2
-                );
-                sphere.userData = { id: node.id, concept: node.concept };
-                nodes.add(sphere);
+                let sphere = nodes.getChildren().find(n => n.metadata.id === node.id);
+                if (!sphere) {
+                    sphere = BABYLON.MeshBuilder.CreateSphere(`node-${node.id}`, {diameter: 0.2}, scene);
+                    sphere.material = new BABYLON.StandardMaterial(`material-${node.id}`, scene);
+                    sphere.metadata = { id: node.id, concept: node.concept };
+                    sphere.parent = nodes;
+                    
+                    // Set initial position if not already stored
+                    if (!nodePositions[node.id]) {
+                        nodePositions[node.id] = new BABYLON.Vector3(
+                            Math.random() * 4 - 2,
+                            Math.random() * 4 - 2,
+                            Math.random() * 4 - 2
+                        );
+                    }
+                }
+                sphere.position = nodePositions[node.id];
+                sphere.material.diffuseColor = new BABYLON.Color3(node.trust, 0, 1-node.trust);
             });
 
             // Add new links
             data.links.forEach(link => {
-                const sourceNode = nodes.children.find(node => node.userData.id === link.source);
-                const targetNode = nodes.children.find(node => node.userData.id === link.target);
+                const sourceNode = nodes.getChildren().find(node => node.metadata.id === link.source);
+                const targetNode = nodes.getChildren().find(node => node.metadata.id === link.target);
                 if (sourceNode && targetNode) {
-                    const geometry = new THREE.BufferGeometry().setFromPoints([sourceNode.position, targetNode.position]);
-                    const material = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: link.strength });
-                    const line = new THREE.Line(geometry, material);
-                    links.add(line);
+                    const points = [sourceNode.position, targetNode.position];
+                    const line = BABYLON.MeshBuilder.CreateLines(`link-${link.source}-${link.target}`, {points: points}, scene);
+                    line.color = new BABYLON.Color3(1, 1, 1);
+                    line.alpha = link.strength;
+                    line.parent = links;
                 }
             });
         });
 
-        function animate() {
-            requestAnimationFrame(animate);
-            nodes.rotation.x += 0.001;
-            nodes.rotation.y += 0.001;
-            renderer.render(scene, camera);
-        }
-        animate();
+        // Render loop
+        engine.runRenderLoop(() => {
+            scene.render();
+        });
 
         // Handle window resizing
         window.addEventListener('resize', function() {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
+            engine.resize();
+        });
+
+        // Create a single action manager for the scene
+        scene.actionManager = new BABYLON.ActionManager(scene);
+
+        // Function to create a tooltip
+        function createTooltip(scene) {
+            const plane = BABYLON.MeshBuilder.CreatePlane("tooltip", {width: 1, height: 0.5}, scene);
+            plane.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL; // Make the tooltip face the camera
+            const advancedTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateForMesh(plane);
+            const textBlock = new BABYLON.GUI.TextBlock();
+            textBlock.text = ""; // Start with empty text
+            textBlock.color = "white";
+            textBlock.fontSize = 24;
+            advancedTexture.addControl(textBlock);
+            plane.isVisible = false; // Initially hidden
+            return { plane, textBlock };
+        }
+
+        // Create a tooltip
+        const { plane: tooltipPlane, textBlock: tooltipText } = createTooltip(scene);
+        let lastPickedNode = null; // Track the last picked node
+
+        // Register a click event to handle node selection
+        canvas.addEventListener('click', function(evt) {
+            const pickResult = scene.pick(scene.pointerX, scene.pointerY);
+            if (pickResult.hit && pickResult.pickedMesh && pickResult.pickedMesh.metadata) {
+                const pickedNode = pickResult.pickedMesh;
+                if (lastPickedNode === pickedNode) {
+                    // Hide tooltip if the same node is clicked again
+                    tooltipPlane.isVisible = false;
+                    lastPickedNode = null;
+                } else {
+                    // Show tooltip for the new node
+                    tooltipPlane.position = pickedNode.position.add(new BABYLON.Vector3(0, 0.3, 0));
+                    tooltipPlane.isVisible = true;
+                    tooltipText.text = pickedNode.metadata.concept; // Update tooltip text
+                    lastPickedNode = pickedNode;
+                }
+            } else {
+                tooltipPlane.isVisible = false;
+                lastPickedNode = null;
+            }
         });
     </script>
 </body>
