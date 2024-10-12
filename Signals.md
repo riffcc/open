@@ -219,7 +219,9 @@ So now we've made our site fast in any region, which is a huge improvement, but 
 ### Enter Unusual Suspect 2: OrbitDB
 OrbitDB is a database protocol built on top of IPFS.
 
-It allows you to talk in a common language to other peers - browsers, runnning IPFS.
+It allows you to talk in a common language to other peers - browsers, runnning IPFS and OrbitDB - allowing you to host your entire website's database - the database itself and everything about the site - on a decentralised group of volunteers. Essentially, using the site, you donate a little bit of your compute's bandwidth to act as a sort of distributed storage layer.
+
+
 
 # Original text that is being adapted follows and is not "part" of this.
 
