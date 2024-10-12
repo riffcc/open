@@ -193,7 +193,7 @@ class ThoughtNetwork:
                 network_response = self.generate_response()
                 print(f"Network response: {network_response}")
                 
-                time.sleep(5)  # Reduced to 5 seconds
+                time.sleep(0.1)  # Go.
             except Exception as e:
                 logging.error(f"Error in continuous learning loop: {e}")
                 print(f"Error in continuous learning: {e}")
