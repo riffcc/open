@@ -10,8 +10,7 @@ that benefits from it.
 
 It will be heady, ambitious, hard to prove and reason about and easy to misunderstand.
 
-It will most likely fall to a logic error or a game theoretic misunderstanding that was unclear,
-but if not may have applications beyond intuition or initial expectations..
+Read https://riff.cc/signals-for-humans/ for a simple version of this, especially while we reshape this one to suit.
 
 ## Summary
 in short, open allows you to build products, platforms, communities and entire societies
