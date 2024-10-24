@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrustRail AI Interface</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+        #app { max-width: 800px; margin: 0 auto; }
+        input, button, select { margin: 5px 0; padding: 5px; }
+        #graph { width: 100%; height: 400px; border: 1px solid #ccc; }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <h1>TrustRail AI Interface</h1>
+        
+        <h2>Make a Decision</h2>
+        <textarea v-model="query" placeholder="Enter your query" rows="4" cols="50"></textarea>
+        <select v-model="decisionTag">
+            <option value="">Select a tag (optional)</option>
+            <option v-for="tag in tags" :key="tag" :value="tag">{{ tag }}</option>
+        </select>
+        <button @click="makeDecision">Ask AI</button>
+        <div v-if="decision" class="decision-result">
+            <h3>Decision:</h3>
+            <p>{{ decision }}</p>
+            <button @click="reinforceDecision">👍</button>
+        </div>
+
+        <h2>Learn from Experience</h2>
+        <input v-model="learnConcept1" placeholder="Enter concept 1">
+        <input v-model="learnConcept2" placeholder="Enter concept 2">
+        <select v-model="learnTag">
+            <option value="">Select a tag</option>
+            <option v-for="tag in tags" :key="tag" :value="tag">{{ tag }}</option>
+        </select>
+        <input v-model="learnOutcome" type="number" placeholder="Outcome (-1 to 1)">
+        <button @click="learn">Learn</button>
+
+        <h2>Add New Concept</h2>
+        <input v-model="newConcept" placeholder="New concept">
+        <input v-model="newConceptTrust" type="number" placeholder="Initial trust (0 to 1)">
+        <button @click="addConcept">Add Concept</button>
+
+        <h2>Add Trust Relationship</h2>
+        <input v-model="relationConcept1" placeholder="Concept 1">
+        <input v-model="relationConcept2" placeholder="Concept 2">
+        <select v-model="relationTag">
+            <option value="">Select a tag</option>
+            <option v-for="tag in tags" :key="tag" :value="tag">{{ tag }}</option>
+        </select>
+        <input v-model="relationTrust" type="number" placeholder="Trust (0 to 1)">
+        <button @click="addRelationship">Add Relationship</button>
+
+        <h2>Trust Network Visualization</h2>
+        <div id="graph"></div>
+
+        <select v-model="selectedTag" @change="updateGraphView">
+            <option value="">All Tags</option>
+            <option v-for="tag in tags" :key="tag" :value="tag">{{ tag }}</option>
+        </select>
+    </div>
+
+    <script>
+        const socket = io('http://127.0.0.1:5005', {
+            transports: ['websocket'],
+            reconnection: true,
+            reconnectionAttempts: 5,
+            reconnectionDelay: 1000
+        });
+
+        function log(message) {
+            console.log(`[${new Date().toISOString()}] ${message}`);
+        }
+
+        new Vue({
+            el: '#app',
+            data: {
+                query: '',
+                decision: '',
+                decisionTag: '',
+                learnConcept1: '',
+                learnConcept2: '',
+                learnTag: '',
+                learnOutcome: 0,
+                newConcept: '',
+                newConceptTrust: 0.1,
+                relationConcept1: '',
+                relationConcept2: '',
+                relationTag: '',
+                relationTrust: 0.5,
+                tags: [],
+                concepts: [],
+                graph: null,
+                selectedTag: '',
+                lastDecision: null
+            },
+            methods: {
+                makeDecision() {
+                    log(`Making decision: query=${this.query}, tag=${this.decisionTag}`);
+                    socket.emit('make_decision', { query: this.query, tag: this.decisionTag });
+                },
+                learn() {
+                    socket.emit('learn', { 
+                        concept1: this.learnConcept1,
+                        concept2: this.learnConcept2,
+                        tag: this.learnTag,
+                        outcome: parseFloat(this.learnOutcome) 
+                    });
+                },
+                addConcept() {
+                    socket.emit('add_concept', {
+                        concept: this.newConcept,
+                        trust: parseFloat(this.newConceptTrust)
+                    });
+                },
+                addRelationship() {
+                    socket.emit('add_relationship', {
+                        concept1: this.relationConcept1,
+                        concept2: this.relationConcept2,
+                        tag: this.relationTag,
+                        trust: parseFloat(this.relationTrust)
+                    });
+                },
+                renderGraph(data) {
+                    console.log("Rendering graph with data:", data);
+                    if (!data || !data.nodes || !data.links) {
+                        console.error("Invalid graph data received");
+                        return;
+                    }
+
+                    const width = 800;
+                    const height = 600;
+                    const color = d3.scaleOrdinal(d3.schemeCategory10);
+
+                    d3.select("#graph").selectAll("*").remove();
+
+                    const svg = d3.select("#graph")
+                        .append("svg")
+                        .attr("width", width)
+                        .attr("height", height);
+
+                    const g = svg.append("g");
+
+                    svg.call(d3.zoom().on("zoom", (event) => {
+                        g.attr("transform", event.transform);
+                    }));
+
+                    const simulation = d3.forceSimulation(data.nodes)
+                        .force("link", d3.forceLink(data.links).id(d => d.id).distance(100))
+                        .force("charge", d3.forceManyBody().strength(-300))
+                        .force("center", d3.forceCenter(width / 2, height / 2))
+                        .force("collision", d3.forceCollide().radius(d => d.size + 5));
+
+                    const link = g.append("g")
+                        .selectAll("line")
+                        .data(data.links)
+                        .enter().append("line")
+                        .attr("stroke-width", d => Math.sqrt(d.trust) * 2)
+                        .attr("stroke", d => color(d.tag));
+
+                    const node = g.append("g")
+                        .selectAll("circle")
+                        .data(data.nodes)
+                        .enter().append("circle")
+                        .attr("r", d => d.size)
+                        .attr("fill", d => color(d.id));
+
+                    const label = g.append("g")
+                        .selectAll("text")
+                        .data(data.nodes)
+                        .enter().append("text")
+                        .text(d => d.id)
+                        .attr("font-size", 12)
+                        .attr("dx", 12)
+                        .attr("dy", 4);
+
+                    simulation.on("tick", () => {
+                        link
+                            .attr("x1", d => d.source.x)
+                            .attr("y1", d => d.source.y)
+                            .attr("x2", d => d.target.x)
+                            .attr("y2", d => d.target.y);
+
+                        node
+                            .attr("cx", d => d.x)
+                            .attr("cy", d => d.y);
+
+                        label
+                            .attr("x", d => d.x)
+                            .attr("y", d => d.y);
+                    });
+
+                    node.call(d3.drag()
+                        .on("start", dragstarted)
+                        .on("drag", dragged)
+                        .on("end", dragended));
+
+                    function dragstarted(event, d) {
+                        if (!event.active) simulation.alphaTarget(0.3).restart();
+                        d.fx = d.x;
+                        d.fy = d.y;
+                    }
+
+                    function dragged(event, d) {
+                        d.fx = event.x;
+                        d.fy = event.y;
+                    }
+
+                    function dragended(event, d) {
+                        if (!event.active) simulation.alphaTarget(0);
+                        d.fx = null;
+                        d.fy = null;
+                    }
+                },
+                updateGraphView() {
+                    if (this.selectedTag) {
+                        const filteredLinks = this.graph.links.filter(link => link.tag === this.selectedTag);
+                        const nodeIds = new Set(filteredLinks.flatMap(link => [link.source, link.target]));
+                        const filteredNodes = this.graph.nodes.filter(node => nodeIds.has(node.id));
+                        this.renderGraph({nodes: filteredNodes, links: filteredLinks});
+                    } else {
+                        this.renderGraph(this.graph);
+                    }
+                },
+                reinforceDecision() {
+                    if (this.lastDecision) {
+                        log(`Reinforcing decision: ${JSON.stringify(this.lastDecision)}`);
+                        socket.emit('reinforce_decision', this.lastDecision);
+                    }
+                }
+            },
+            mounted() {
+                log('Vue instance mounted');
+                
+                socket.on('connect', () => {
+                    log('Connected to server');
+                    // Request initial graph data with an empty object
+                    socket.emit('get_initial_graph', {});
+                });
+
+                socket.on('initial_data', (data) => {
+                    console.log("Received initial data:", data);
+                    this.tags = data.tags;
+                    this.concepts = data.concepts;
+                    if (data.graph) {
+                        console.log("Graph data:", data.graph);
+                        this.renderGraph(data.graph);
+                    }
+                });
+
+                socket.on('graph_update', (data) => {
+                    log(`Received graph update: ${JSON.stringify(data)}`);
+                    this.graph = data;
+                    this.updateGraphView();
+                });
+
+                socket.on('tags_update', (data) => {
+                    log(`Received tags update: ${JSON.stringify(data)}`);
+                    this.tags = data.tags;
+                });
+
+                socket.on('decision_result', (data) => {
+                    log(`Received decision result: ${JSON.stringify(data)}`);
+                    this.decision = data.result;
+                    // Extract start and end concepts from the decision result
+                    const match = this.decision.match(/Based on the relationship between (\w+) and (\w+)/);
+                    if (match) {
+                        this.lastDecision = {
+                            start_concept: match[1],
+                            end_concept: match[2],
+                            tag: this.decisionTag
+                        };
+                    }
+                });
+
+                socket.on('reinforcement_result', (data) => {
+                    log(`Received reinforcement result: ${JSON.stringify(data)}`);
+                    // You can add some visual feedback here if you want
+                });
+
+                // Request initial graph data
+                socket.emit('get_initial_graph');
+            },
+            watch: {
+                selectedTag() {
+                    this.updateGraphView();
+                }
+            }
+        });
+
+        // Add error handling
+        socket.on('error', (error) => {
+            console.error('Socket.IO Error:', error);
+        });
+
+        socket.on('connect_error', (error) => {
+            console.error('Socket.IO Connection Error:', error);
+        });
+
+        // Log any errors that occur during script execution
+        window.onerror = function(message, source, lineno, colno, error) {
+            console.error('JavaScript Error:', message, 'at', source, 'line', lineno);
+            return false;
+        };
+    </script>
+</body>
+</html>
