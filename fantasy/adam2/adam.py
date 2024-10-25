@@ -1,5 +1,6 @@
 import networkx as nx
 import random
+import threading
 import json
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
@@ -9,6 +10,13 @@ import logging
 from collections import defaultdict
 from logging.handlers import RotatingFileHandler
 from networkx.readwrite import json_graph
+import nltk
+from nltk import pos_tag, word_tokenize
+from collections import Counter
+import time
+
+nltk.download('punkt', quiet=True)
+nltk.download('averaged_perceptron_tagger', quiet=True)
 
 app = Flask(__name__)
 CORS(app)
@@ -23,47 +31,39 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 
 class TrustRailAI:
-    def __init__(self, db_name='adam.sqlite'):
+    def __init__(self, db_name='trustnet.db'):
         self.db_name = db_name
-        self.trust_threshold = 0.5
-        self.concept_graph = nx.MultiDiGraph()
-        self.init_db()
-        self.load_graph_from_db()
+        self.initialize_database()
 
-    def init_db(self):
+    def initialize_database(self):
         with sqlite3.connect(self.db_name) as conn:
             c = conn.cursor()
+            
+            # Create concepts table
             c.execute('''CREATE TABLE IF NOT EXISTS concepts
                          (id INTEGER PRIMARY KEY, name TEXT UNIQUE)''')
+            
+            # Create relationships table
             c.execute('''CREATE TABLE IF NOT EXISTS relationships
-                         (id INTEGER PRIMARY KEY, 
-                          concept1_id INTEGER, 
+                         (id INTEGER PRIMARY KEY,
+                          concept1_id INTEGER,
                           concept2_id INTEGER,
-                          FOREIGN KEY(concept1_id) REFERENCES concepts(id),
-                          FOREIGN KEY(concept2_id) REFERENCES concepts(id))''')
+                          tag TEXT,
+                          trust REAL,
+                          FOREIGN KEY (
+                          concept1_id) REFERENCES concepts(id),
+                          FOREIGN KEY (
+                          concept2_id) REFERENCES concepts(id))''')
+            
+            # Create trust_values table
             c.execute('''CREATE TABLE IF NOT EXISTS trust_values
                          (id INTEGER PRIMARY KEY,
                           relationship_id INTEGER,
                           tag TEXT,
                           trust REAL,
                           FOREIGN KEY(relationship_id) REFERENCES relationships(id))''')
+            
             conn.commit()
-        logging.info("Database initialized")
-
-    def load_graph_from_db(self):
-        with sqlite3.connect(self.db_name) as conn:
-            c = conn.cursor()
-            c.execute('''
-                SELECT c1.name, c2.name, tv.tag, tv.trust
-                FROM relationships r
-                JOIN concepts c1 ON r.concept1_id = c1.id
-                JOIN concepts c2 ON r.concept2_id = c2.id
-                JOIN trust_values tv ON r.id = tv.relationship_id
-            ''')
-            relationships = c.fetchall()
-
-        for c1, c2, tag, trust in relationships:
-            self.concept_graph.add_edge(c1, c2, tag=tag, trust=trust)
 
     def add_concept(self, concept):
         with sqlite3.connect(self.db_name) as conn:
@@ -274,8 +274,148 @@ class TrustRailAI:
         self.load_graph_from_db()  # Reload the graph after reinforcement
         logger.info(f"Reinforced trust between {start_concept} and {end_concept}")
 
+    def think(self):
+        """Re-evaluate all concepts and their relationships."""
+        logger.info("AI is thinking...")
+        
+        # Get all concepts and their relationships
+        concepts = self.get_all_concepts()
+        relationships = self.get_all_relationships()
+
+        # Simple example of re-evaluation:
+        # Strengthen relationships between frequently co-occurring concepts
+        concept_occurrences = defaultdict(int)
+        for rel in relationships:
+            concept_occurrences[rel['concept1']] += 1
+            concept_occurrences[rel['concept2']] += 1
+
+        for rel in relationships:
+            if concept_occurrences[rel['concept1']] > 5 and concept_occurrences[rel['concept2']] > 5:
+                new_trust = min(1.0, rel['trust'] + 0.1)
+                self.update_relationship(rel['concept1'], rel['concept2'], rel['tag'], new_trust)
+
+        # Generate new relationships based on transitive properties
+        for c1 in concepts:
+            for c2 in concepts:
+                if c1 != c2:
+                    common_neighbors = self.find_common_neighbors(c1, c2)
+                    if common_neighbors:
+                        avg_trust = sum(n['trust'] for n in common_neighbors) / len(common_neighbors)
+                        self.add_or_update_relationship(c1, c2, "inferred", avg_trust)
+
+        logger.info("Thinking process completed")
+
+    def find_common_neighbors(self, concept1, concept2):
+        # Implementation to find common neighbors between two concepts
+        # This is a placeholder and should be implemented based on your data structure
+        pass
+
+    def add_or_update_relationship(self, concept1, concept2, tag, trust):
+        # Implementation to add a new relationship or update an existing one
+        # This is a placeholder and should be implemented based on your data structure
+        pass
+
+    def process_prompt(self, prompt):
+        self.learn_from_sentence(prompt)
+        
+        response = f"I've learned from your input: '{prompt}'. "
+        
+        # Analyze the sentence structure
+        tokens = word_tokenize(prompt)
+        tagged = pos_tag(tokens)
+        structure = ' '.join([tag for _, tag in tagged])
+        
+        response += f"The sentence structure is: {structure}. "
+        
+        # Identify some grammar concepts
+        if any(tag.startswith('VB') for _, tag in tagged):
+            response += "I noticed you used a verb. "
+        if any(tag.startswith('NN') for _, tag in tagged):
+            response += "I noticed you used a noun. "
+        if any(tag == 'JJ' for _, tag in tagged):
+            response += "I noticed you used an adjective. "
+        
+        # Provide some insights based on learned concepts
+        common_words = self.get_common_words()
+        if common_words:
+            response += f"Some common words I've learned are: {', '.join(common_words)}. "
+        
+        return response
+
+    def get_common_words(self, n=3):
+        with sqlite3.connect(self.db_name) as conn:
+            c = conn.cursor()
+            c.execute('''SELECT word, SUM(count) as total_count 
+                         FROM grammar_concepts 
+                         GROUP BY word 
+                         ORDER BY total_count DESC 
+                         LIMIT ?''', (n,))
+            return [row[0] for row in c.fetchall()]
+
+    def initialize_grammar_tables(self):
+        with sqlite3.connect(self.db_name) as conn:
+            c = conn.cursor()
+            c.execute('''CREATE TABLE IF NOT EXISTS grammar_concepts
+                         (tag TEXT, word TEXT, count INTEGER, 
+                          PRIMARY KEY (tag, word))''')
+            c.execute('''CREATE TABLE IF NOT EXISTS sentence_structures
+                         (structure TEXT PRIMARY KEY, count INTEGER)''')
+            conn.commit()
+
+    def learn_from_sentence(self, sentence):
+        tokens = word_tokenize(sentence)
+        tagged = pos_tag(tokens)
+        
+        with sqlite3.connect(self.db_name) as conn:
+            c = conn.cursor()
+            
+            # Learn individual word types
+            for word, tag in tagged:
+                c.execute('''INSERT INTO grammar_concepts (tag, word, count) 
+                             VALUES (?, ?, 1) 
+                             ON CONFLICT(tag, word) 
+                             DO UPDATE SET count = count + 1''', (tag, word.lower()))
+            
+            # Learn sentence structure
+            structure = ' '.join([tag for _, tag in tagged])
+            c.execute('''INSERT INTO sentence_structures (structure, count) 
+                         VALUES (?, 1) 
+                         ON CONFLICT(structure) 
+                         DO UPDATE SET count = count + 1''', (structure,))
+            
+            conn.commit()
+        
+        # Attempt to identify grammar concepts
+        self.identify_grammar_concepts(tagged)
+
+    def identify_grammar_concepts(self, tagged_sentence):
+        if any(tag.startswith('VB') for _, tag in tagged_sentence):
+            self.add_or_update_relationship('sentence', 'verb', 'contains', 1.0)
+        if any(tag.startswith('NN') for _, tag in tagged_sentence):
+            self.add_or_update_relationship('sentence', 'noun', 'contains', 1.0)
+        if any(tag == 'JJ' for _, tag in tagged_sentence):
+            self.add_or_update_relationship('sentence', 'adjective', 'contains', 1.0)
+
+    def get_all_relationships(self):
+        with sqlite3.connect(self.db_name) as conn:
+            c = conn.cursor()
+            c.execute('''SELECT c1.name, c2.name, r.tag, r.trust 
+                         FROM relationships r
+                         JOIN concepts c1 ON r.concept1_id = c1.id
+                         JOIN concepts c2 ON r.concept2_id = c2.id''')
+            return [{'concept1': row[0], 'concept2': row[1], 'tag': row[2], 'trust': row[3]} 
+                    for row in c.fetchall()]
+
+def thinking_process(ai):
+    while True:
+        ai.think()
+        time.sleep(300)  # Think every 5 minutes
+
 # Initialize the AI
 ai = TrustRailAI()
+thinking_thread = threading.Thread(target=thinking_process, args=(ai,))
+thinking_thread.daemon = True
+thinking_thread.start()
 
 # Flask backend
 @app.route('/')
@@ -295,6 +435,13 @@ def handle_connect(auth):
     }
     logger.info(f"Sending initial data: {initial_data}")
     emit('initial_data', initial_data)
+    socketio.start_background_task(send_updates)
+
+def send_updates():
+    while True:
+        socketio.sleep(10)  # Check for updates every 10 seconds
+        graph_data = ai.get_graph_data()
+        socketio.emit('graph_update', graph_data)
 
 @socketio.on('disconnect')
 def handle_disconnect():
@@ -360,6 +507,21 @@ def handle_reinforce_decision(data):
     except Exception as e:
         logger.error(f"Error in reinforce_decision: {str(e)}", exc_info=True)
         emit('reinforcement_result', {'result': 'An error occurred while reinforcing the decision'})
+
+@socketio.on('prompt')
+def handle_prompt(data):
+    logger.info(f"Received prompt: {data}")
+    query = data['query'].strip()
+    if not query:
+        emit('ai_response', {'result': "Please enter a prompt or question."})
+        return
+    try:
+        result = ai.process_prompt(query)
+        logger.info(f"AI response: {result}")
+        emit('ai_response', {'result': result})
+    except Exception as e:
+        logger.error(f"Error in processing prompt: {str(e)}", exc_info=True)
+        emit('ai_response', {'result': "An error occurred while processing your prompt."})
 
 if __name__ == '__main__':
     logger.info("Starting the application")

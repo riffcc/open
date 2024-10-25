@@ -18,6 +18,14 @@
     <div id="app">
         <h1>TrustRail AI Interface</h1>
         
+        <h2>Interact with AI</h2>
+        <textarea v-model="userInput" placeholder="Enter your prompt or question" rows="4" cols="50"></textarea>
+        <button @click="sendPrompt">Ask AI</button>
+        <button @click="makeDecision">Make Decision</button>
+
+        <h3>AI Response:</h3>
+        <div v-if="aiResponse" class="ai-response">{{ aiResponse }}</div>
+
         <h2>Make a Decision</h2>
         <textarea v-model="query" placeholder="Enter your query" rows="4" cols="50"></textarea>
         <select v-model="decisionTag">
@@ -80,6 +88,8 @@
         new Vue({
             el: '#app',
             data: {
+                userInput: '',
+                aiResponse: '',
                 query: '',
                 decision: '',
                 decisionTag: '',
@@ -100,9 +110,15 @@
                 lastDecision: null
             },
             methods: {
+                sendPrompt() {
+                    if (this.userInput.trim()) {
+                        this.socket.emit('prompt', { query: this.userInput });
+                    }
+                },
                 makeDecision() {
-                    log(`Making decision: query=${this.query}, tag=${this.decisionTag}`);
-                    socket.emit('make_decision', { query: this.query, tag: this.decisionTag });
+                    if (this.userInput.trim()) {
+                        this.socket.emit('make_decision', { query: this.userInput, tag: this.decisionTag });
+                    }
                 },
                 learn() {
                     socket.emit('learn', { 
@@ -127,12 +143,6 @@
                     });
                 },
                 renderGraph(data) {
-                    console.log("Rendering graph with data:", data);
-                    if (!data || !data.nodes || !data.links) {
-                        console.error("Invalid graph data received");
-                        return;
-                    }
-
                     const width = 800;
                     const height = 600;
                     const color = d3.scaleOrdinal(d3.schemeCategory10);
@@ -146,9 +156,13 @@
 
                     const g = svg.append("g");
 
-                    svg.call(d3.zoom().on("zoom", (event) => {
-                        g.attr("transform", event.transform);
-                    }));
+                    const zoom = d3.zoom()
+                        .scaleExtent([0.1, 8])
+                        .on("zoom", function() {
+                            g.attr("transform", d3.event.transform);
+                        });
+
+                    svg.call(zoom);
 
                     const simulation = d3.forceSimulation(data.nodes)
                         .force("link", d3.forceLink(data.links).id(d => d.id).distance(100))
@@ -195,27 +209,27 @@
                             .attr("y", d => d.y);
                     });
 
-                    node.call(d3.drag()
-                        .on("start", dragstarted)
-                        .on("drag", dragged)
-                        .on("end", dragended));
-
-                    function dragstarted(event, d) {
-                        if (!event.active) simulation.alphaTarget(0.3).restart();
+                    function dragstarted(d) {
+                        if (!d3.event.active) simulation.alphaTarget(0.3).restart();
                         d.fx = d.x;
                         d.fy = d.y;
                     }
 
-                    function dragged(event, d) {
-                        d.fx = event.x;
-                        d.fy = event.y;
+                    function dragged(d) {
+                        d.fx = d3.event.x;
+                        d.fy = d3.event.y;
                     }
 
-                    function dragended(event, d) {
-                        if (!event.active) simulation.alphaTarget(0);
+                    function dragended(d) {
+                        if (!d3.event.active) simulation.alphaTarget(0);
                         d.fx = null;
                         d.fy = null;
                     }
+
+                    node.call(d3.drag()
+                        .on("start", dragstarted)
+                        .on("drag", dragged)
+                        .on("end", dragended));
                 },
                 updateGraphView() {
                     if (this.selectedTag) {
@@ -253,10 +267,9 @@
                     }
                 });
 
-                socket.on('graph_update', (data) => {
-                    log(`Received graph update: ${JSON.stringify(data)}`);
-                    this.graph = data;
-                    this.updateGraphView();
+                socket.on('graph_update', function(data) {
+                    console.log("Received graph update:", data);
+                    this.renderGraph(data);
                 });
 
                 socket.on('tags_update', (data) => {
@@ -281,6 +294,10 @@
                 socket.on('reinforcement_result', (data) => {
                     log(`Received reinforcement result: ${JSON.stringify(data)}`);
                     // You can add some visual feedback here if you want
+                });
+
+                socket.on('ai_response', (data) => {
+                    this.aiResponse = data.result;
                 });
 
                 // Request initial graph data
