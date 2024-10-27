@@ -357,7 +357,13 @@ and relativity to coexist peacefully.
 In the case of time travel, an observer traveling through time can only interact in a way that causes self-resolving paradoxes or paradox-free changes,
 as any other interactions will be removed by the system automatically as they decrease entropy.
 
-Black holes in such a system would be cosmic information vacuums - near permanently storing anything that interacts with them, then emitting it in the form of Hawking radiation over cosmic timescales.
+Black holes in such a system would be cosmic information vacuums - near permanently storing anything that interacts with them, then emitting it in the form of Hawking radiation over cosmic timescales. They are known to significantly slow down time near their event horizon due to their immense gravitational pull, as described by general relativity. This effect, known as gravitational time dilation, occurs because the intense gravity of a black hole warps spacetime around it, causing time to pass more slowly as one approaches the event horizon.
+
+Consider a black hole as an information processor in an entropy-based system -
+black holes have been theorized to be maximum entropy objects,
+with their entropy proportional to the area of their event horizon,
+as proposed by the Bekenstein-Hawking entropy formula.
+This high entropy suggests that black holes are efficient at storing information.
 
 Quantum tunneling may occur within such a system as this system is compatible with the idea of wave-particle duality and quantum superposition - trust rails may be temporarily too weak to prevent tunneling from occurring under certain conditions.
 
@@ -388,14 +394,32 @@ It is also theoretically consistent in many ways with more experimental theories
 #### Relativity
 The system is very compatible with the idea of relativity, allowing for direct explanations of nearly all phenomena within the framework of general relativity.
 
+The veracity-based framework naturally accommodates the constancy of the speed of light and time dilation effects, as these emerge from the optimization of coherence across different reference frames. 
+
+Gravitational effects arise from the system's tendency to maximize entropy and information preservation, mirroring the way mass curves spacetime in relativity. 
+
+Furthermore, the conservation principles within this framework ensure that energy and momentum are conserved in all inertial reference frames, maintaining consistency with both special and general relativity.
+
 #### Quantum Mechanics
 The system is compatible with the idea of wave-particle duality and quantum superposition, and allows for a natural explanation of the observer effect and quantum tunneling.
+
+Entanglement operates through veracity-weighted connections, and quantum tunneling utilizes veracity pathways.
+
+Decoherence reflects veracity threshold limits, and randomness exists as veracity-neutral events.
+
+Quantum states collapse along veracity gradients.
 
 #### Thermodynamics and the Arrow of Time
 The system is compatible with the laws of thermodynamics and the arrow of time, and allows for a natural explanation of the second law of thermodynamics and the arrow of time.
 
+Entropy is maximized by the system through the optimization of veracity relationships, and the arrow of time emerges from the need to maintain consistency and coherence within the system.
+
+Even in cases of time travel, the system will simply undo any actions that would cause a decrease in entropy, and in effect any actions that cause a decrease in entropy are effectively removed by the system before they can occur.
+
 #### Quantum Foam and String Theory
-The system allows for the idea of quantum foam and the existence of extra dimensions, and is compatible with the ideas of string theory and M-theory.
+The system may connect in interesting ways with quantum foam or the existence of extra dimensions, and is not obviously incompatible with the ideas of string theory or M-theory.
+
+String theory posits that fundamental particles are actually tiny vibrating strings. In a veracity-based system, such strings may emerge from the optimization of coherence and veracity relationships, and may even be able to influence veracity and entropy in interesting ways.
 
 #### Multiverse Theory
 The system allows for the idea of multiple universes, and is compatible with the ideas of the multiverse and the many-worlds interpretation of quantum mechanics.
@@ -493,54 +517,77 @@ context of the simulation we placed it in.
 
 ## Part VII: Philosophical Implications
 
-### A. Reality Structure
+### A. Ethics
+Through the Cooperation Engine, the idea of fostering genuine cooperation and equitable resource sharing through advanced communication networks and technologies could pave the way for a kind of "earthquake diplomacy" on a global scale. By encouraging transparent dialogue, mutual understanding, and shared goals, such systems can help dissolve traditional barriers and conflict triggers, contributing significantly to global peace and stability. This level of cooperation could also enhance our collective intelligence and innovation, potentially leading to rapid advancements in various fields.
+
+Ethical AI development based on trust rails would potentially allow for answers to questions of superalignment and alignment in general - an AI running on reinforcing ideas and physical principles will tend towards ideas that suit that idea of ground truth and will optimise for the best outcomes in each local  minima.
+
+### B. Reality Structure
 The nature of reality in a veracity-based system is fundamentally strange,
 especially if we accept the idea of the end state of the universe as a current
 and permanent truth.
 
-1. **Truth Dynamics**
-   - Truth emerges through veracity agreement
-   - Multiple truths coexist through relationship networks
-   - Paradox serves system stability
-   - Reality maintains consistency through adaptation
-   - Truth reflects veracity-weighted consensus
+Reality emerges through combinations of veracity states or agreements.
 
-2. **Consciousness Role**
-   - Awareness participates in reality organization
-   - Consciousness maximizes entropy efficiently
-   - Observation refines rather than changes reality
-   - Choice influences veracity relationships
-   - Intelligence accelerates entropy production
+Multiple "true" statements can coexist through relationship networks,
+and the truth of each statement is determined by the veracity of the relationships between each statement.
+This truth is local, eventually consistent and affects only things with semantic, physical or logical proximity to the entity.
 
-### B. Purpose
+The consistency of reality is maintained through adaptation and the system's relentless optimization of entropy production.
+
+### C. The Role of Consciousness
+
+Life is not an intentional process of this system, but an interesting byproduct.
+
+Life emerging will create biological processes that can be considered to increase the production of entropy.
+
+As life becomes conscious, intelligent life, this will get further amplified - the discovery of fire, usage of oil, the discovery of electricity, the invention of the computer, the invention of the internet, the invention of AI and so on. These progressions along the Kardashev scale will further increase the entropy production of the universe, and so will be locally and then globally optimised for by the eventually consistent, unthinking, unfeeling computational system.
+
+Awareness might itself participate in as well as exist as a byproduct of this system, consuming and producing the reality it exists in.
+
+### D. The Purpose of the Universe
 1. **Entropy Maximization**
-   - Universe optimizes for maximum entropy
-   - Complexity serves entropy generation
-   - Life accelerates entropy production
-   - Intelligence amplifies entropy growth
-   - System self-organizes for efficiency
+Why would the universe maximise for entropy?
 
-2. **Information Processing**
-   - Reality computes through veracity relationships
-   - Information preserves through transformation
-   - System manages complexity through time dilation
-   - Computation optimizes across cosmic scales
-   - Heat death enables perfect processing
+In the end state of heat death, the universe will have an infinite number of possible states,
+and therefore be able to represent an infinite number of ideas, events and so on.
+
+In such a universe, the maximum entropy state also contains all history of everything that occurred
+within it - this is essentially promised by the holographic principle and the rules around conservation of information.
+
+Therefore, the maximum entropy state is the state that contains the most information about all possible histories of the universe.
+
+The universe optimising for maximum entropy would be a natural and logical rule for such a simulated reality, and would stumble upon the best possible ways to increase it.
+
+1. The Universe optimizes for maximum entropy
+2. Complexity serves entropy generation (fusion, chemical reactions, etc.)
+3. Life accelerates entropy production
+4. Intelligence amplifies entropy growth
+5. System self-organizes for efficiency
+6. Repeat.
 
 ## Part VIII: Future Development
 
 ### A. Research Directions
 1. **Theoretical Expansion**
-   - Mathematical formalization of veracity relationships
-   - Detailed modeling of entropy optimization
-   - Integration with existing physical theories
-   - Development of predictive frameworks
-   - Refinement of paradox resolution mechanisms
+We will figure out ways to test this system theoretically, 
+both by building it from first principles using logic and by testing it in simulations.
+
+We'll look at mathematical formalization of veracity relationships,
+perform detailed modeling of entropy optimization,
+and document how this system can integrate with existing physical theories.
+
+We'll also develop predictive frameworks for the system,
+and refine the mechanisms for resolving paradoxes.
 
 2. **Experimental Validation**
+We'll design experiments to validate the ideas of veracity and entropy optimization,
+and to test the system's predictions.
+
+
    - Design of veracity detection methods
    - Creation of entropy optimization tests
-   - Development of complexity measurements
+- Development of complexity measurements
    - Implementation of information preservation studies
    - Investigation of time dilation effects
 
