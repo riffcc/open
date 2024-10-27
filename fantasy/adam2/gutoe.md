@@ -128,20 +128,6 @@ Veracity serves as the metric for measuring the "strength" and coherence of rela
    - Influence on Reality: Veracity influences not only information transfer but also the strength and durability of connections, shaping emergent laws and constants.
    - Any number of connections between any number of entities can exist, and each can have a different weight and veracity value.
 
-2. **Emergence of Laws and Constants**
-In such a system, it is expected that laws and constants will emerge through the veracity of relationships between entities. Things will naturally converge towards constants such as the speed of light, the strength of the electromagnetic force, the mass of the electron, and so on.
-
-This convergence occurs due to the following:
-- Stability breeds increased likelihood of entropy production continuing to increase.
-  This is partly because the emergence of life and especially intelligent civilisations causes large spikes and exponential accelerations in the production of entropy (read: spend of energy), but also because the more stable a system is, the more likely it is to continue to exist, and the more likely it is to continue to be able to produce entropy by efficiently converting matter or potential energy into entropy, waste and products.
-- Entropy production is a good proxy for the amount of energy being used, and the amount of energy being used is a good proxy for the amount of matter being converted into entropy waste and products.
-- In a system with stable physical laws and constants, specifically those that are likely useful for the production of life and intelligence as well as the efficient and continuous production of entropy, entities are much more likely to be able to exist and to continue to exist.
-
-A system with the ability to run localised simulations and evolve along near infinite combinations of possible states will naturally converge towards realities with consistent laws and constants that produce useful engines for producing massive amounts of entropy.
-
-Laws usually reach stability by increasing coherence across the system, with veracity dictating the persistence and influence of these principles.
-
-Physics can be regional, with different veracity thresholds enabling different physical behaviours, producing regional variations in observable constants.
 
 3. **Reinforcement of Laws**
    - Laws and constants are supported and reinforced by semantic and logical concepts that add to their significance or coherence within a chaotic system.
