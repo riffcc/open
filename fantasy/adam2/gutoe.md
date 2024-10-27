@@ -1,27 +1,21 @@
 # A Veracity-Based Grand Unified Theory of Everything: Trust Rails
 
 ## Abstract
-This paper outlines a theoretical framework where reality emerges from two fundamental processes:
+This paper proposes that the universe operates as a vast computational system optimizing for maximum entropy through two interlinked mechanisms:
 
-1. **Trust-Based Interactions**: The universe operates through "trust rails" - verifiable connections between entities that determine how they interact. These connections:
-   - Guide all physical interactions
-   - Allow state transfer without information transfer
-   - Create coherent causality
-   - Enable efficient computation
+1. **Trust Rails**: Fundamental connections between entities that:
+   - Enable state transfer without information transfer
+   - Create coherent causality through verifiable relationships
+   - Allow efficient computation through selective interaction
+   - Scale from quantum to cosmic levels
 
-2. **Entropy Maximization**: The universe optimizes for maximum entropy through:
-   - Exploring all possible states
-   - Favoring paths that increase complexity
-   - Supporting emergence of life and intelligence
-   - Using time dilation to manage computational load
+2. **Entropy Maximization**: The universe's driving force that:
+   - Explores all possible states through brute force iteration
+   - Creates complexity as an efficient entropy generator
+   - Uses time dilation to manage computational load
+   - Maintains causality while allowing quantum effects
 
-This framework suggests our universe is a vast computational system that:
-- Uses trust relationships to determine valid interactions
-- Maintains causality while allowing quantum effects
-- Creates complexity to maximize entropy
-- Operates through distributed, verifiable processes
-
-The theory emerged from studying distributed systems rather than pure physics, offering a novel perspective on fundamental reality that appears compatible with known physical laws while suggesting new ways to understand quantum mechanics, consciousness, and the nature of existence itself.
+This framework emerged from studying distributed systems and information theory rather than pure physics. It suggests our reality is an emergent property of these mechanisms, offering new perspectives on quantum mechanics, consciousness, and the nature of existence while remaining compatible with known physical laws.
 
 # A Veracity-Based Grand Unified Theory of Everything: The Trust Rails
 At the base layer of the framework is the simple idea of a "trust rail".
