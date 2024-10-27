@@ -1,14 +1,19 @@
 # A Veracity-Based Grand Unified Theory of Everything: Trust Rails
-We'd like to talk about a radical rethinking of the foundations of physics, consciousness, and the nature of reality itself.
-
-While it makes wild changes to the way we think about reality, it is seemingly compatible with physical principles we already know about. It may offer supporting structures for everything from string theory to the anthropic principle.
-
-It proposes a framework for a new view of science. It currently lacks formal rigour, and may not have any truth to it, but it is a useful thought experiment. We'd like to share it and see what you think.
 
 ## Abstract
-This paper outlines a theoretical framework that proposes veracity, or trust-strength, as the universe's fundamental metric governing relationships, laws, and constants. Rooted in the concept of "Trust Rails"—lines of coherence and connection between entities—this model hypothesizes that our reality emerges through computational processes optimizing to maximise entropy. Through veracity-based dynamics, entities interact within a decentralized federation structure, ultimately generating complex systems, laws, and behaviors with simple, predictable and emergent rules and interactions.
+This paper proposes a fundamental rethinking of physics and reality based on two core principles:
 
-The paper explores implications for physics, consciousness, and reality itself, presenting a thought experiment and roadmap for further exploration.
+1. The universe's structure emerges from "trust rails" - connections between entities based on veracity (truth/coherence relationships)
+2. The universe optimizes to maximize entropy, with this optimization driving the emergence of complexity and life
+
+While highly speculative, this framework appears compatible with known physics while offering new perspectives on quantum mechanics, consciousness, and the nature of reality itself. The theory suggests that our universe operates as a vast computational system where:
+
+- Trust relationships guide interactions at all scales
+- Entropy maximization drives complexity
+- Time and space emerge from computational optimization
+- Information and state can transfer without violating causality
+
+This model arose from studying distributed systems and information theory rather than pure physics, offering a novel approach to understanding fundamental reality.
 
 # A Veracity-Based Grand Unified Theory of Everything: The Trust Rails
 At the base layer of the framework is the simple idea of a "trust rail".
