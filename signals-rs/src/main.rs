@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet, BinaryHeap};
+use std::collections::{HashSet, BinaryHeap};
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 use std::cmp::Ordering;
@@ -42,7 +42,6 @@ impl HexPoint {
 
 struct PropagationVisualizer {
     current_wave: usize,
-    start_time: Instant,
     hex_points: Vec<HexPoint>,
     current_time: f64,
     nodes_reached: usize,
@@ -55,15 +54,14 @@ impl PropagationVisualizer {
     fn new(initial_rings: usize, total_nodes: usize) -> Self {
         let mut visualizer = Self {
             current_wave: 0,
-            start_time: Instant::now(),
-            hex_points: Vec::new(),  // Start empty
+            hex_points: Vec::new(),
             current_time: 0.0,
-            nodes_reached: 1,  // Start with origin counted
+            nodes_reached: 1,
             last_latency: 0.0,
             total_nodes,
             max_depth: 0,
         };
-        visualizer.ensure_ring_exists(initial_rings);  // Pre-populate initial rings
+        visualizer.ensure_ring_exists(initial_rings);
         visualizer
     }
 
@@ -218,7 +216,7 @@ impl PropagationVisualizer {
         self.current_time = state.max_time;
         self.last_latency = state.last_latency;
         self.max_depth = state.max_depth;
-        self.ensure_ring_exists(state.current_wave);
+        self.ensure_ring_exists(self.current_wave);
     }
 }
 
@@ -248,7 +246,7 @@ impl Node {
         let current_depth = network.calculate_depth(self.index);
         
         // Early exit if we're beyond max depth
-        if current_depth > network.max_depth {
+        if current_depth > network.get_max_depth() {
             return Vec::new();
         }
 
@@ -318,8 +316,6 @@ impl PartialOrd for Node {
 #[derive(Clone)]
 struct GlobalHexNetwork {
     node_count: usize,
-    max_depth: usize,
-    latencies: HashMap<&'static str, f64>,
     fractal_mode: bool,
 }
 
@@ -352,35 +348,18 @@ impl Ord for NetworkEvent {
 }
 
 impl GlobalHexNetwork {
-    fn new(target_nodes: usize, fractal_mode: bool) -> Self {
-        let (node_count, max_depth) = if fractal_mode {
-            // Calculate the depth needed for the target number of nodes
-            let mut total_nodes = 0;
-            let mut depth = 0;
-            
-            while total_nodes < target_nodes {
-                total_nodes += 7_usize.pow(depth as u32);
-                if total_nodes >= target_nodes {
-                    break;
-                }
-                depth += 1;
-            }
-            
-            (total_nodes.min(target_nodes), depth)
-        } else {
-            (target_nodes, 1)
-        };
-        
-        let mut latencies = HashMap::new();
-        latencies.insert("local", 0.1);
-        latencies.insert("regional", 1.0);
-        latencies.insert("global", 5.0);
-
+    fn new(node_count: usize, fractal_mode: bool) -> Self {
         Self {
             node_count,
-            max_depth,
-            latencies,
             fractal_mode,
+        }
+    }
+
+    fn get_max_depth(&self) -> usize {
+        if self.fractal_mode {
+            (self.node_count as f64).log(7.0).ceil() as usize
+        } else {
+            1
         }
     }
 
@@ -610,8 +589,6 @@ struct VisualizationState {
     current_wave: usize,
     nodes_reached: usize,
     max_time: f64,
-    min_time: f64,
-    avg_time: f64,
     last_latency: f64,
     max_depth: usize,
 }
@@ -629,8 +606,8 @@ fn run_with_visualization(network: GlobalHexNetwork, _realtime: bool) -> Result<
     // Create a separate clone for the simulation thread
     let network_sim = network.clone();
     
-    // Spawn simulation thread
-    let mut simulation_thread = thread::spawn(move || {
+    // Make simulation_thread mutable
+    let mut _simulation_thread = thread::spawn(move || {
         let mut visited = HashSet::with_capacity(node_count);
         let mut event_queue = BinaryHeap::new();
         let mut arrival_times = Vec::with_capacity(node_count);
@@ -653,8 +630,6 @@ fn run_with_visualization(network: GlobalHexNetwork, _realtime: bool) -> Result<
                 current_wave: 0,
                 nodes_reached: 1,
                 max_time: 0.0,
-                min_time: 0.0,
-                avg_time: 0.0,
                 last_latency: 0.0,
                 max_depth: 0,
             },
@@ -706,8 +681,6 @@ fn run_with_visualization(network: GlobalHexNetwork, _realtime: bool) -> Result<
                                 current_wave: max_depth,
                                 nodes_reached: visited.len(),
                                 max_time: times.iter().fold(0.0_f64, |a: f64, &b| a.max(b)),
-                                min_time: times.iter().fold(f64::INFINITY, |a: f64, &b| a.min(b)),
-                                avg_time: times.iter().sum::<f64>() / times.len() as f64,
                                 last_latency,  // Use tracked latency
                                 max_depth,
                             },
@@ -729,8 +702,6 @@ fn run_with_visualization(network: GlobalHexNetwork, _realtime: bool) -> Result<
                 current_wave: max_depth,
                 nodes_reached: visited.len(),
                 max_time: times.iter().fold(0.0_f64, |a: f64, &b| a.max(b)),
-                min_time: times.iter().fold(f64::INFINITY, |a: f64, &b| a.min(b)),
-                avg_time: times.iter().sum::<f64>() / times.len() as f64,
                 last_latency,  // Use tracked latency
                 max_depth,
             },
@@ -752,7 +723,6 @@ fn run_with_visualization(network: GlobalHexNetwork, _realtime: bool) -> Result<
     )?;
 
     let mut visualizer = PropagationVisualizer::new(10, node_count);
-    let mut simulation_complete = false;
     let mut paused = false;
 
     // Main visualization loop
@@ -805,7 +775,7 @@ fn run_with_visualization(network: GlobalHexNetwork, _realtime: bool) -> Result<
                         
                         // Create new simulation thread with fresh network clone
                         let network_sim = network.clone();
-                        simulation_thread = thread::spawn(move || {
+                        _simulation_thread = thread::spawn(move || {
                             let mut visited = HashSet::with_capacity(node_count);
                             let mut event_queue = BinaryHeap::new();
                             let mut arrival_times = Vec::with_capacity(node_count);
@@ -828,8 +798,6 @@ fn run_with_visualization(network: GlobalHexNetwork, _realtime: bool) -> Result<
                                     current_wave: 0,
                                     nodes_reached: 1,
                                     max_time: 0.0,
-                                    min_time: 0.0,
-                                    avg_time: 0.0,
                                     last_latency: 0.0,
                                     max_depth: 0,
                                 },
@@ -881,8 +849,6 @@ fn run_with_visualization(network: GlobalHexNetwork, _realtime: bool) -> Result<
                                                     current_wave: max_depth,
                                                     nodes_reached: visited.len(),
                                                     max_time: times.iter().fold(0.0_f64, |a: f64, &b| a.max(b)),
-                                                    min_time: times.iter().fold(f64::INFINITY, |a: f64, &b| a.min(b)),
-                                                    avg_time: times.iter().sum::<f64>() / times.len() as f64,
                                                     last_latency,
                                                     max_depth,
                                                 },
@@ -904,8 +870,6 @@ fn run_with_visualization(network: GlobalHexNetwork, _realtime: bool) -> Result<
                                     current_wave: max_depth,
                                     nodes_reached: visited.len(),
                                     max_time: times.iter().fold(0.0_f64, |a: f64, &b| a.max(b)),
-                                    min_time: times.iter().fold(f64::INFINITY, |a: f64, &b| a.min(b)),
-                                    avg_time: times.iter().sum::<f64>() / times.len() as f64,
                                     last_latency,
                                     max_depth,
                                 },

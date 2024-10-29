@@ -1,10 +1,21 @@
+
 [package]
 name = "network_simulation"
 version = "0.1.0"
 edition = "2021"
+default-run = "network_simulation"	
+
+[[bin]]
+name = "network_simulation"
+path = "src/main.rs"
+
+[[bin]]
+name = "network_3d"
+path = "src/bin/network_3d.rs"
 
 [dependencies]
 ratatui = "0.29.0"  # Adjust the version as needed
 crossterm = "0.28"  # Adjust the version as needed
 rand = "0.8.5"
 indicatif = "0.17.8"
+bevy = "0.14.2"
