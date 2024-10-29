@@ -3,6 +3,7 @@ from collections import defaultdict
 import time
 from tqdm import tqdm
 import random  # Using standard random
+import math  # Add this import
 
 class GlobalHexNetwork:
     def __init__(self, target_nodes=10_000_000):  # 10 million
@@ -43,6 +44,7 @@ class GlobalHexNetwork:
         
         max_time = 0
         nodes_reached = 0
+        hops_histogram = defaultdict(int)
         
         with tqdm(total=self.node_count, desc="Propagating signal") as pbar:
             while queue and nodes_reached < self.node_count:
@@ -56,6 +58,7 @@ class GlobalHexNetwork:
                 
                 times[current] = t
                 max_time = max(max_time, t)
+                hops_histogram[len(visited)] += 1
                 
                 neighbors = self.get_neighbors(current)
                 for neighbor, distance_type in neighbors:
@@ -65,28 +68,108 @@ class GlobalHexNetwork:
         
         return {
             'max_time': max_time,
-            'nodes_reached': nodes_reached
+            'nodes_reached': nodes_reached,
+            'hops_histogram': dict(hops_histogram)
         }
 
     def get_neighbors(self, node):
-        # Return list of (neighbor, distance_type) based on hexagonal geometry
-        # Simplified for demonstration
+        # Simpler, faster neighbor calculation
         neighbors = []
-        for i in range(6):  # 6 neighbors in hexagonal grid
-            neighbor = node + i + 1
-            if neighbor >= len(self.nodes):
-                continue
-            
-            # Determine distance type based on node positions
-            if i < 2:
-                dist_type = 'local'
-            elif i < 4:
-                dist_type = 'regional'
-            else:
-                dist_type = 'global'
+        
+        # Direct neighbors (always connect to adjacent nodes)
+        local_neighbors = [
+            node + 1,
+            node - 1
+        ]
+        
+        # Layer jumps (connect to nodes ~1000 away)
+        jump_size = 1000
+        regional_neighbors = [
+            node + jump_size,
+            node - jump_size
+        ]
+        
+        # Add local neighbors
+        for n in local_neighbors:
+            if 0 <= n < self.node_count:
+                neighbors.append((n, 'local'))
                 
-            neighbors.append((neighbor, dist_type))
+        # Add regional neighbors
+        for n in regional_neighbors:
+            if 0 <= n < self.node_count:
+                neighbors.append((n, 'regional'))
+        
         return neighbors
+
+    def get_node_layer(self, node):
+        # Quick layer calculation
+        if node == 0:
+            return 0
+        layer = int((3 + math.sqrt(9 + 12 * node)) / 6)
+        return layer
+
+    def simulate_attack(self, failure_rate=0.5):
+        """Simulate network under attack by disabling nodes"""
+        print(f"\nSimulating {failure_rate*100}% node failure...")
+        
+        # Randomly select nodes to fail
+        total_failures = int(self.node_count * failure_rate)
+        failed_nodes = set(random.sample(self.nodes, total_failures))
+        
+        # Run propagation with node failures
+        results = []
+        for attack_round in range(3):  # Test multiple patterns
+            start_node = random.choice([n for n in self.nodes if n not in failed_nodes])
+            
+            print(f"\nAttack Round {attack_round + 1}: Starting from node {start_node}")
+            result = self.propagate_signal_under_attack(start_node, failed_nodes)
+            results.append(result)
+            
+            coverage = result['nodes_reached'] / (self.node_count - len(failed_nodes))
+            print(f"Coverage achieved: {coverage*100:.2f}%")
+        
+        return results
+
+    def propagate_signal_under_attack(self, start_node, failed_nodes):
+        visited = set()
+        times = defaultdict(float)
+        queue = [(start_node, 0)]
+        
+        with tqdm(total=self.node_count - len(failed_nodes), 
+                 desc="Testing resilience") as pbar:
+            while queue:
+                current, t = queue.pop(0)
+                if current in visited or current in failed_nodes:
+                    continue
+                
+                visited.add(current)
+                pbar.update(1)
+                times[current] = t
+                
+                neighbors = self.get_neighbors(current)
+                for neighbor, distance_type in neighbors:
+                    if (neighbor not in visited and 
+                        neighbor not in failed_nodes):
+                        latency = self.latencies[distance_type]
+                        queue.append((neighbor, t + latency))
+        
+        return {
+            'max_time': max(times.values()) if times else 0,
+            'nodes_reached': len(visited),
+            'coverage': len(visited) / (self.node_count - len(failed_nodes))
+        }
+
+def get_percentile(data, p):
+    """Calculate percentile from a list of values"""
+    sorted_data = sorted(data)
+    k = (len(sorted_data) - 1) * (p/100.0)
+    f = math.floor(k)
+    c = math.ceil(k)
+    if f == c:
+        return sorted_data[int(k)]
+    d0 = sorted_data[int(f)] * (c-k)
+    d1 = sorted_data[int(c)] * (k-f)
+    return d0 + d1
 
 # Run simulation
 print("Initializing global network simulation...")
@@ -103,10 +186,41 @@ print(f"Maximum propagation time: {results['max_time']/1000:.2f} seconds")
 print(f"Nodes reached: {results['nodes_reached']:,}")
 print(f"Simulation took: {end_time - start_time:.2f} seconds")
 
-# Print hop distribution summary
-hops = results['hops_histogram']
+# Add histogram summary
 print("\nHop distribution summary:")
+hops = results['hops_histogram']
 percentiles = [50, 90, 95, 99]
 for p in percentiles:
-    hop_count = np.percentile(list(hops.keys()), p)
+    hop_count = get_percentile(list(hops.keys()), p)
     print(f"{p}th percentile hops: {hop_count:.0f}")
+
+print("\nTesting network resilience...")
+failure_rates = [0.3, 0.5, 0.7]  # Test different failure rates
+for rate in failure_rates:
+    results = network.simulate_attack(rate)
+    print(f"\nResults with {rate*100}% node failure:")
+    for i, r in enumerate(results):
+        print(f"Round {i+1}:")
+        print(f"  Nodes reached: {r['nodes_reached']:,}")
+        print(f"  Coverage: {r['coverage']*100:.2f}%")
+        print(f"  Max propagation time: {r['max_time']/1000:.2f} seconds")
+
+# Add these precise test points
+failure_rates = [
+    0.499,    # 49.9%
+    0.4999,   # 49.99%
+    0.49999,  # 49.999%
+    0.499999, # 49.9999%
+    0.5,      # 50% (our known breakdown point)
+]
+
+print("\nTesting precise failure thresholds...")
+for rate in failure_rates:
+    print(f"\nSimulating {rate*100:.4f}% node failure...")
+    results = network.simulate_attack(rate)
+    print(f"\nResults with {rate*100:.4f}% node failure:")
+    for i, r in enumerate(results):
+        print(f"Round {i+1}:")
+        print(f"  Nodes reached: {r['nodes_reached']:,}")
+        print(f"  Coverage: {r['coverage']*100:.4f}%")
+        print(f"  Max propagation time: {r['max_time']/1000:.2f} seconds")
