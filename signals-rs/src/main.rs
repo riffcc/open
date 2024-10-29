@@ -246,6 +246,7 @@ impl PartialOrd for Node {
     }
 }
 
+#[derive(Clone)]
 struct GlobalHexNetwork {
     node_count: usize,
     max_depth: usize,
@@ -380,11 +381,11 @@ impl GlobalHexNetwork {
             .unwrap()
             .progress_chars("#>-"));
         
-        // Explicitly type our float variables
+        // Explicitly type our floats as f64
         let mut min_network_time: f64 = f64::MAX;
         let mut max_network_time: f64 = 0.0;
         let mut total_network_time: f64 = 0.0;
-        let mut nodes_processed: usize = 0;
+        let mut nodes_processed = 0;
         
         while let Some(event) = event_queue.pop() {
             if visited.contains(&event.node.hash) {
@@ -504,7 +505,7 @@ fn main() -> Result<(), io::Error> {
     match (realtime, viz_mode) {
         (true, true) => {
             // Realtime with visualization
-            run_with_visualization(&network, true)
+            run_with_visualization(network.clone(), true)
         }
         (true, false) => {
             // Realtime without visualization
@@ -512,7 +513,7 @@ fn main() -> Result<(), io::Error> {
         }
         (false, true) => {
             // Normal simulation with visualization
-            run_with_visualization(&network, false)
+            run_with_visualization(network.clone(), false)
         }
         (false, false) => {
             // Normal simulation without visualization
@@ -535,20 +536,15 @@ struct VisualizationState {
     last_latency: f64,
 }
 
-fn run_with_visualization(network: &GlobalHexNetwork, realtime: bool) -> Result<(), io::Error> {
+fn run_with_visualization(network: GlobalHexNetwork, realtime: bool) -> Result<(), io::Error> {
     let (tx, rx) = channel::<VisualizationState>();
-    
-    // Clone network data needed for simulation
-    let node_count = network.node_count;
-    let fractal_mode = network.fractal_mode;
-    let network_thread = GlobalHexNetwork::new(node_count, fractal_mode);
-    let start_time = Instant::now();
     
     thread::spawn(move || {
         let mut visited = HashSet::new();
         let mut event_queue = BinaryHeap::new();
+        let start_time = Instant::now();
+        let mut last_viz_update = Instant::now();
         
-        // Initial event
         event_queue.push(NetworkEvent {
             node: Node::new(0, 0.0, 0),
             arrival_time: 0.0,
@@ -559,21 +555,24 @@ fn run_with_visualization(network: &GlobalHexNetwork, realtime: bool) -> Result<
                 continue;
             }
 
-            // In realtime mode, sleep until this event's time
+            // In realtime mode, wait until the next event's network time
             if realtime {
-                let sleep_time = (event.arrival_time - start_time.elapsed().as_secs_f64()).max(0.0);
-                if sleep_time > 0.0 {
-                    thread::sleep(Duration::from_secs_f64(sleep_time));
+                let current_time = start_time.elapsed().as_secs_f64();
+                if event.arrival_time > current_time {
+                    thread::sleep(Duration::from_secs_f64(
+                        (event.arrival_time - current_time).max(0.0)
+                    ));
                 }
             }
 
             visited.insert(event.node.hash);
             let ring = (visited.len() as f64).sqrt() as usize / 2;
-            
-            // Schedule all neighbor events
-            for (neighbor_index, connection_type) in network_thread.get_neighbors(event.node.index) {
-                let latency = network_thread.get_latency(connection_type);
-                let arrival_time = event.arrival_time + latency / 1000.0; // Convert ms to seconds
+
+            // Batch process all neighbors that should arrive by now
+            let mut pending_neighbors = Vec::new();
+            for (neighbor_index, connection_type) in network.get_neighbors(event.node.index) {
+                let latency = network.get_latency(connection_type);
+                let arrival_time = event.arrival_time + (latency / 1000.0);
                 
                 let neighbor_node = Node::new(
                     neighbor_index,
@@ -582,18 +581,27 @@ fn run_with_visualization(network: &GlobalHexNetwork, realtime: bool) -> Result<
                 );
 
                 if !visited.contains(&neighbor_node.hash) {
-                    event_queue.push(NetworkEvent {
+                    pending_neighbors.push(NetworkEvent {
                         node: neighbor_node,
                         arrival_time,
                     });
-                    
-                    tx.send(VisualizationState {
-                        current_wave: ring,
-                        nodes_reached: visited.len(),
-                        max_time: arrival_time * 1000.0, // Convert back to ms for display
-                        last_latency: latency,
-                    }).ok();
                 }
+            }
+
+            // Add all pending neighbors at once
+            for neighbor_event in pending_neighbors {
+                event_queue.push(neighbor_event);
+            }
+
+            // Update visualization at 60fps
+            if last_viz_update.elapsed() > Duration::from_millis(16) {
+                tx.send(VisualizationState {
+                    current_wave: ring,
+                    nodes_reached: visited.len(),
+                    max_time: event.arrival_time * 1000.0,
+                    last_latency: event.arrival_time * 1000.0,
+                }).ok();
+                last_viz_update = Instant::now();
             }
         }
     });
