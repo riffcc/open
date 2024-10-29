@@ -3,3 +3,4 @@ synthesis/**
 Video_*.mp4
 fantasy/2024-10-24
 .env
+__pycache__/
