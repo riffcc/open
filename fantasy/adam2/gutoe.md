@@ -109,6 +109,7 @@ The universe operates as a vast computational system optimizing for maximum entr
 - Causality preservation with quantum effects
 
 ### 4. Veracity as a Fundamental Force
+
 Veracity is a loan word used here to describe the strength of a connection from one entity to another.
 In a veracity rail, entities adjust the veracity of their connections to optimize for:
 - Specific trust relationships, especially with entities they already trust
@@ -124,6 +125,12 @@ specific physical laws, such as:
 - Conservation of information
 - Relativistic effects
 - Quantum effects
+
+Veracity relationships are physically implemented along the edges of Planck-scale hexagonal tiles, allowing:
+- State propagation without information transfer
+- Perfect computational efficiency through geometric optimization
+- Natural emergence of quantum effects
+- Built-in pathways for trust relationships
 
 ### 5. A Computational Universe
 In this framework, the universe is an unthinking, unfeeling computational system,
@@ -177,6 +184,13 @@ to run in a finite universe with a finite lifespan:
    - Thus, when an observer collapses the wave function into discrete states,
      it is effectively the universe choosing to evaluate all relevant states for that observer,
      and putting the rest aside for later evaluation.
+
+The hexagonal substrate enables several key computational optimizations:
+- Perfect tiling for maximum efficiency
+- Built-in state propagation pathways
+- Natural emergence of time dilation in dense regions
+- Efficient information storage and processing
+- Load balancing through geometric properties
 
 ### 7. Continuous Emergent Search
 The universe constantly thinks and recurses, searching all possibilities to expand its entropy over time.
@@ -946,3 +960,32 @@ for reducing the computational cost of creating an entire simulated
 reality with physical laws, properties and constants approaching our own -
 and we believe through this we can also answer questions
 about the anthropic principle and how the constants could have been selected.
+
+### 11. The Hexagonal Universe
+The universe's computational substrate consists of Planck-scale hexagonal tiles that:
+- Form the most efficient possible tiling pattern
+- Enable state propagation along edges
+- Create natural pathways for trust relationships
+- Allow perfect load balancing through geometric properties
+- Explain quantum foam behavior
+- Enable efficient information processing
+- Provide natural mechanisms for time dilation
+- Form the physical basis for trust rails
+
+This geometric foundation explains many observed phenomena:
+- Wave-particle duality through edge vibrations
+- Quantum entanglement via synchronized states
+- Time dilation as computational load balancing
+- Perfect information preservation
+- Natural emergence of complexity
+- Efficient state propagation
+- Built-in trust relationship pathways
+
+The hexagonal substrate represents the perfect union of:
+- Computational efficiency
+- Geometric optimization
+- Information processing
+- Trust relationships
+- Physical implementation
+
+This geometric foundation provides the missing link between the abstract concepts of trust rails and their physical implementation in reality.
