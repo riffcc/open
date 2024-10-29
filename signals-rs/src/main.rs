@@ -48,6 +48,7 @@ struct PropagationVisualizer {
     nodes_reached: usize,
     last_latency: f64,
     total_nodes: usize,
+    max_depth: usize,
 }
 
 impl PropagationVisualizer {
@@ -60,6 +61,7 @@ impl PropagationVisualizer {
             nodes_reached: 1,  // Start with origin counted
             last_latency: 0.0,
             total_nodes,
+            max_depth: 0,
         };
         visualizer.ensure_ring_exists(initial_rings);  // Pre-populate initial rings
         visualizer
@@ -187,13 +189,13 @@ impl PropagationVisualizer {
 
     fn draw_stats(&self, f: &mut ratatui::Frame, area: Rect) {
         let stats = format!(
-            "Network Time: {:.2}ms | Nodes: {}/{} | Depth: {} | Latency: {:.2}ms | Wave: {}",
+            "Network Time: {:.2}ms | Nodes: {}/{} | Wave Front: {} | Tree Depth: {} | Latency: {:.2}ms",
             self.current_time,
             self.nodes_reached,
             self.total_nodes,
-            (self.current_wave as f64).log(7.0).floor() as usize,
-            self.last_latency,
-            self.current_wave
+            self.current_wave,
+            self.max_depth,
+            self.last_latency
         );
 
         let stats_widget = Paragraph::new(stats)
@@ -215,6 +217,7 @@ impl PropagationVisualizer {
         self.nodes_reached = state.nodes_reached;
         self.current_time = state.max_time;
         self.last_latency = state.last_latency;
+        self.max_depth = state.max_depth;
         self.ensure_ring_exists(state.current_wave);
     }
 }
@@ -610,6 +613,7 @@ struct VisualizationState {
     min_time: f64,
     avg_time: f64,
     last_latency: f64,
+    max_depth: usize,
 }
 
 // Add this new struct to handle sync events
@@ -618,7 +622,7 @@ struct PropagationEvent {
     is_complete: bool,
 }
 
-fn run_with_visualization(mut network: GlobalHexNetwork, _realtime: bool) -> Result<(), io::Error> {
+fn run_with_visualization(network: GlobalHexNetwork, _realtime: bool) -> Result<(), io::Error> {
     let (mut tx, mut rx) = channel::<PropagationEvent>();
     let node_count = network.node_count;
     
@@ -631,6 +635,8 @@ fn run_with_visualization(mut network: GlobalHexNetwork, _realtime: bool) -> Res
         let mut event_queue = BinaryHeap::new();
         let mut arrival_times = Vec::with_capacity(node_count);
         let mut last_viz_update = Instant::now();
+        let mut max_depth = 0;
+        let mut last_latency = 0.0;  // Track last latency
         
         // Create and count origin node
         let origin = Node::new(0, 0.0, 0);
@@ -650,6 +656,7 @@ fn run_with_visualization(mut network: GlobalHexNetwork, _realtime: bool) -> Res
                 min_time: 0.0,
                 avg_time: 0.0,
                 last_latency: 0.0,
+                max_depth: 0,
             },
             is_complete: false,
         }).ok();
@@ -664,8 +671,9 @@ fn run_with_visualization(mut network: GlobalHexNetwork, _realtime: bool) -> Res
                     continue;
                 }
 
-                let latency = network_sim.get_latency(connection_type);
-                let arrival_time = event.arrival_time + (latency / 1000.0);
+                let current_latency = network_sim.get_latency(connection_type);
+                last_latency = current_latency;  // Store current latency
+                let arrival_time = event.arrival_time + (current_latency / 1000.0);
                 
                 let neighbor_node = Node::new(
                     neighbor_index,
@@ -676,6 +684,12 @@ fn run_with_visualization(mut network: GlobalHexNetwork, _realtime: bool) -> Res
                 if !visited.contains(&neighbor_node.hash) {
                     visited.insert(neighbor_node.hash);
                     arrival_times.push(arrival_time);
+                    
+                    // Update max_depth when processing nodes
+                    if neighbor_node.depth > max_depth {
+                        max_depth = neighbor_node.depth;
+                    }
+
                     event_queue.push(NetworkEvent {
                         node: neighbor_node,
                         arrival_time,
@@ -689,12 +703,13 @@ fn run_with_visualization(mut network: GlobalHexNetwork, _realtime: bool) -> Res
                         
                         tx.send(PropagationEvent {
                             state: VisualizationState {
-                                current_wave: neighbor_node.depth,
+                                current_wave: max_depth,
                                 nodes_reached: visited.len(),
                                 max_time: times.iter().fold(0.0_f64, |a: f64, &b| a.max(b)),
                                 min_time: times.iter().fold(f64::INFINITY, |a: f64, &b| a.min(b)),
                                 avg_time: times.iter().sum::<f64>() / times.len() as f64,
-                                last_latency: latency,
+                                last_latency,  // Use tracked latency
+                                max_depth,
                             },
                             is_complete: false,
                         }).ok();
@@ -704,19 +719,20 @@ fn run_with_visualization(mut network: GlobalHexNetwork, _realtime: bool) -> Res
             }
         }
 
-        // Send final state with completion flag
+        // Send final state
         let times: Vec<f64> = arrival_times.iter()
             .map(|&t| t * 1000.0)
             .collect();
         
         tx.send(PropagationEvent {
             state: VisualizationState {
-                current_wave: (visited.len() as f64).sqrt() as usize / 2,
+                current_wave: max_depth,
                 nodes_reached: visited.len(),
                 max_time: times.iter().fold(0.0_f64, |a: f64, &b| a.max(b)),
                 min_time: times.iter().fold(f64::INFINITY, |a: f64, &b| a.min(b)),
                 avg_time: times.iter().sum::<f64>() / times.len() as f64,
-                last_latency: 0.0,
+                last_latency,  // Use tracked latency
+                max_depth,
             },
             is_complete: true,
         }).ok();
@@ -794,6 +810,8 @@ fn run_with_visualization(mut network: GlobalHexNetwork, _realtime: bool) -> Res
                             let mut event_queue = BinaryHeap::new();
                             let mut arrival_times = Vec::with_capacity(node_count);
                             let mut last_viz_update = Instant::now();
+                            let mut max_depth = 0;
+                            let mut last_latency = 0.0;
                             
                             // Create and count origin node
                             let origin = Node::new(0, 0.0, 0);
@@ -813,6 +831,7 @@ fn run_with_visualization(mut network: GlobalHexNetwork, _realtime: bool) -> Res
                                     min_time: 0.0,
                                     avg_time: 0.0,
                                     last_latency: 0.0,
+                                    max_depth: 0,
                                 },
                                 is_complete: false,
                             }).ok();
@@ -828,6 +847,7 @@ fn run_with_visualization(mut network: GlobalHexNetwork, _realtime: bool) -> Res
                                     }
 
                                     let latency = network_sim.get_latency(connection_type);
+                                    last_latency = latency;
                                     let arrival_time = event.arrival_time + (latency / 1000.0);
                                     
                                     let neighbor_node = Node::new(
@@ -839,6 +859,12 @@ fn run_with_visualization(mut network: GlobalHexNetwork, _realtime: bool) -> Res
                                     if !visited.contains(&neighbor_node.hash) {
                                         visited.insert(neighbor_node.hash);
                                         arrival_times.push(arrival_time);
+                                        
+                                        // Update max_depth when processing nodes
+                                        if neighbor_node.depth > max_depth {
+                                            max_depth = neighbor_node.depth;
+                                        }
+
                                         event_queue.push(NetworkEvent {
                                             node: neighbor_node,
                                             arrival_time,
@@ -852,12 +878,13 @@ fn run_with_visualization(mut network: GlobalHexNetwork, _realtime: bool) -> Res
                                             
                                             tx.send(PropagationEvent {
                                                 state: VisualizationState {
-                                                    current_wave: neighbor_node.depth,
+                                                    current_wave: max_depth,
                                                     nodes_reached: visited.len(),
                                                     max_time: times.iter().fold(0.0_f64, |a: f64, &b| a.max(b)),
                                                     min_time: times.iter().fold(f64::INFINITY, |a: f64, &b| a.min(b)),
                                                     avg_time: times.iter().sum::<f64>() / times.len() as f64,
-                                                    last_latency: latency,
+                                                    last_latency,
+                                                    max_depth,
                                                 },
                                                 is_complete: false,
                                             }).ok();
@@ -874,12 +901,13 @@ fn run_with_visualization(mut network: GlobalHexNetwork, _realtime: bool) -> Res
                             
                             tx.send(PropagationEvent {
                                 state: VisualizationState {
-                                    current_wave: (visited.len() as f64).sqrt() as usize / 2,
+                                    current_wave: max_depth,
                                     nodes_reached: visited.len(),
                                     max_time: times.iter().fold(0.0_f64, |a: f64, &b| a.max(b)),
                                     min_time: times.iter().fold(f64::INFINITY, |a: f64, &b| a.min(b)),
                                     avg_time: times.iter().sum::<f64>() / times.len() as f64,
-                                    last_latency: 0.0,
+                                    last_latency,
+                                    max_depth,
                                 },
                                 is_complete: true,
                             }).ok();
