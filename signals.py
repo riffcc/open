@@ -171,56 +171,92 @@ def get_percentile(data, p):
     d1 = sorted_data[int(c)] * (k-f)
     return d0 + d1
 
-# Run simulation
-print("Initializing global network simulation...")
-network = GlobalHexNetwork()
-print(f"Created network with {network.node_count:,} nodes in {network.layers:,} layers")
+def test_network_coherence(network, threshold=0.9):
+    """Test if network maintains coherence under normal conditions"""
+    results = network.propagate_signal()
+    coverage = results['nodes_reached'] / network.node_count
+    propagation_speed = results['nodes_reached'] / (results['max_time'] / 1000)  # nodes/sec
+    
+    assert coverage >= threshold, f"Network coherence failed: {coverage*100:.2f}% coverage"
+    assert propagation_speed > 10000, f"Slow propagation: {propagation_speed:.0f} nodes/sec"
+    return True
 
-print("\nSimulating signal propagation...")
-start_time = time.time()
-results = network.propagate_signal()
-end_time = time.time()
+def test_phase_transition(network):
+    """Test network behavior around the 50% threshold"""
+    # Test below threshold
+    below = network.simulate_attack(0.49)
+    assert all(r['coverage'] > 0.5 for r in below), "Failed below threshold"
+    
+    # Test above threshold
+    above = network.simulate_attack(0.51)
+    assert all(r['coverage'] < 0.1 for r in above), "Failed above threshold"
+    return True
 
-print(f"\nResults:")
-print(f"Maximum propagation time: {results['max_time']/1000:.2f} seconds")
-print(f"Nodes reached: {results['nodes_reached']:,}")
-print(f"Simulation took: {end_time - start_time:.2f} seconds")
+def test_resilience(network):
+    """Test network resilience under attack"""
+    results = network.simulate_attack(0.3)
+    assert all(r['coverage'] > 0.9 for r in results), "Failed resilience test"
+    return True
 
-# Add histogram summary
-print("\nHop distribution summary:")
-hops = results['hops_histogram']
-percentiles = [50, 90, 95, 99]
-for p in percentiles:
-    hop_count = get_percentile(list(hops.keys()), p)
-    print(f"{p}th percentile hops: {hop_count:.0f}")
+if __name__ == "__main__":
+    print("Initializing global network simulation...")
+    network = GlobalHexNetwork()
+    
+    print("\nRunning reality verification tests...")
+    try:
+        test_network_coherence(network)
+        print("✓ Network coherence verified")
+        test_phase_transition(network)
+        print("✓ Phase transition behavior verified")
+        test_resilience(network)
+        print("✓ Network resilience verified")
+        print("\nReality is functioning within expected parameters.")
+    except AssertionError as e:
+        print(f"Reality check failed: {e}")
 
-print("\nTesting network resilience...")
-failure_rates = [0.3, 0.5, 0.7]  # Test different failure rates
-for rate in failure_rates:
-    results = network.simulate_attack(rate)
-    print(f"\nResults with {rate*100}% node failure:")
-    for i, r in enumerate(results):
-        print(f"Round {i+1}:")
-        print(f"  Nodes reached: {r['nodes_reached']:,}")
-        print(f"  Coverage: {r['coverage']*100:.2f}%")
-        print(f"  Max propagation time: {r['max_time']/1000:.2f} seconds")
+    # Continue with detailed analysis
+    print(f"\nNetwork details:")
+    print(f"Total nodes: {network.node_count:,}")
+    print(f"Network layers: {network.layers:,}")
+    
+    print("\nRunning propagation analysis...")
+    start_time = time.time()
+    results = network.propagate_signal()
+    end_time = time.time()
 
-# Add these precise test points
-failure_rates = [
-    0.499,    # 49.9%
-    0.4999,   # 49.99%
-    0.49999,  # 49.999%
-    0.499999, # 49.9999%
-    0.5,      # 50% (our known breakdown point)
-]
+    print(f"\nPropagation results:")
+    print(f"Maximum propagation time: {results['max_time']/1000:.2f} seconds")
+    print(f"Nodes reached: {results['nodes_reached']:,}")
+    print(f"Simulation took: {end_time - start_time:.2f} seconds")
 
-print("\nTesting precise failure thresholds...")
-for rate in failure_rates:
-    print(f"\nSimulating {rate*100:.4f}% node failure...")
-    results = network.simulate_attack(rate)
-    print(f"\nResults with {rate*100:.4f}% node failure:")
-    for i, r in enumerate(results):
-        print(f"Round {i+1}:")
-        print(f"  Nodes reached: {r['nodes_reached']:,}")
-        print(f"  Coverage: {r['coverage']*100:.4f}%")
-        print(f"  Max propagation time: {r['max_time']/1000:.2f} seconds")
+    # Analyze hop distribution
+    print("\nHop distribution summary:")
+    hops = results['hops_histogram']
+    percentiles = [50, 90, 95, 99]
+    for p in percentiles:
+        hop_count = get_percentile(list(hops.keys()), p)
+        print(f"{p}th percentile hops: {hop_count:.0f}")
+
+    # Test resilience at standard thresholds
+    print("\nTesting standard failure thresholds...")
+    for rate in [0.3, 0.5, 0.7]:
+        results = network.simulate_attack(rate)
+        print(f"\nResults with {rate*100}% node failure:")
+        for i, r in enumerate(results):
+            print(f"Round {i+1}:")
+            print(f"  Nodes reached: {r['nodes_reached']:,}")
+            print(f"  Coverage: {r['coverage']*100:.2f}%")
+            print(f"  Max propagation time: {r['max_time']/1000:.2f} seconds")
+
+    # Test precise failure thresholds
+    print("\nTesting precise failure thresholds...")
+    precise_rates = [0.499, 0.4999, 0.49999, 0.499999, 0.5]
+    for rate in precise_rates:
+        print(f"\nSimulating {rate*100:.4f}% node failure...")
+        results = network.simulate_attack(rate)
+        print(f"\nResults with {rate*100:.4f}% node failure:")
+        for i, r in enumerate(results):
+            print(f"Round {i+1}:")
+            print(f"  Nodes reached: {r['nodes_reached']:,}")
+            print(f"  Coverage: {r['coverage']*100:.4f}%")
+            print(f"  Max propagation time: {r['max_time']/1000:.2f} seconds")
