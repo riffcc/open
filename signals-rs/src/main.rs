@@ -44,7 +44,6 @@ impl HexPoint {
 }
 
 struct PropagationVisualizer {
-    waves: Vec<WaveFront>,
     current_wave: usize,
     start_time: Instant,
     hex_points: Vec<HexPoint>,
@@ -62,7 +61,6 @@ impl PropagationVisualizer {
         hex_points.push(HexPoint { x: 0.0, y: 0.0, ring: 0 });
         
         Self {
-            waves: Vec::with_capacity(initial_rings),
             current_wave: 0,
             start_time: Instant::now(),
             hex_points,
@@ -79,16 +77,6 @@ impl PropagationVisualizer {
                 self.hex_points.push(HexPoint::new(current_ring, segment));
             }
         }
-    }
-
-    fn add_wave(&mut self, ring: usize, nodes: usize, time: f64) {
-        self.waves.push(WaveFront {
-            ring,
-            nodes,
-            time,
-            start_time: Instant::now(),
-        });
-        self.current_wave = ring;
     }
 
     fn calculate_zoom(&self) -> f64 {
@@ -196,35 +184,41 @@ impl Node {
 
     fn get_fractal_neighbors(&self, network: &GlobalHexNetwork) -> Vec<(Node, f64)> {
         let mut neighbors = Vec::new();
+        let current_depth = network.calculate_depth(self.index);
+        let cluster_size = 7_usize.pow(current_depth as u32);
         
-        // Same level neighbors
-        for i in 1..=6 {
-            let neighbor_index = (self.hash + i as u64) % network.node_count as u64;
-            neighbors.push((
-                Node::new(neighbor_index as usize, self.time, self.depth),
-                network.get_latency("local")
-            ));
+        // Local cluster connections (always available)
+        let cluster_start = (self.index / cluster_size) * cluster_size;
+        for i in 0..6 {
+            let neighbor_index = cluster_start + ((self.index - cluster_start + i + 1) % cluster_size);
+            if neighbor_index < network.node_count {
+                neighbors.push((
+                    Node::new(neighbor_index, self.time, current_depth),
+                    network.get_latency("local")
+                ));
+            }
         }
 
-        // Upper level (parent) connection
-        if self.depth > 0 {
+        // Parent connection (if not root)
+        if current_depth > 0 {
             let parent_index = self.index / 7;
-            neighbors.push((
-                Node::new(parent_index, self.time, self.depth - 1),
-                network.get_latency("regional")
-            ));
+            if parent_index < network.node_count {
+                neighbors.push((
+                    Node::new(parent_index, self.time, current_depth - 1),
+                    network.get_latency("regional")
+                ));
+            }
         }
 
-        // Lower level (children) connections
-        if self.depth < network.max_depth {
-            for i in 0..6 {
-                let child_index = self.index * 7 + i + 1;
-                if child_index < network.node_count {
-                    neighbors.push((
-                        Node::new(child_index, self.time, self.depth + 1),
-                        network.get_latency("regional")
-                    ));
-                }
+        // Child connections (if space remains)
+        let child_base = self.index * 7 + 1;
+        for i in 0..6 {
+            let child_index = child_base + i;
+            if child_index < network.node_count {
+                neighbors.push((
+                    Node::new(child_index, self.time, current_depth + 1),
+                    network.get_latency("global")
+                ));
             }
         }
 
@@ -261,19 +255,30 @@ struct GlobalHexNetwork {
 
 impl GlobalHexNetwork {
     fn new(target_nodes: usize, fractal_mode: bool) -> Self {
-        let max_depth = if fractal_mode {
-            (target_nodes as f64).log(7.0).ceil() as usize
+        let (node_count, max_depth) = if fractal_mode {
+            // Calculate the largest complete fractal that fits
+            let complete_depth = (target_nodes as f64).log(7.0).floor() as usize;
+            let complete_size = (0..=complete_depth).map(|d| 7_usize.pow(d as u32)).sum();
+            
+            // If we have remaining nodes, add a partial next level
+            let remaining = target_nodes.saturating_sub(complete_size);
+            let partial_depth = if remaining > 0 { complete_depth + 1 } else { complete_depth };
+            
+            // Use all requested nodes up to the next fractal boundary
+            (target_nodes.min((0..=partial_depth).map(|d| 7_usize.pow(d as u32)).sum()), 
+             partial_depth)
         } else {
-            1
+            (target_nodes, 1)
         };
         
+        // Increased latencies to better show hierarchical effects
         let mut latencies = HashMap::new();
-        latencies.insert("local", 5.0);
-        latencies.insert("regional", 25.0);
-        latencies.insert("global", 100.0);
-        
+        latencies.insert("local", 0.1);      // 100μs for same-cluster
+        latencies.insert("regional", 1.0);    // 1ms for parent/child
+        latencies.insert("global", 5.0);      // 5ms for cross-cluster
+
         Self {
-            node_count: target_nodes,
+            node_count,
             max_depth,
             latencies,
             fractal_mode,
@@ -330,143 +335,6 @@ impl GlobalHexNetwork {
         (max_time, min_time, avg_time, nodes_reached)
     }
 
-    fn propagate_flat(&self, start_node: usize) -> (f64, usize) {
-        let mut visited = HashSet::new();
-        let mut heap = BinaryHeap::new();
-        heap.push(Node::new(start_node, 0.0, 0));
-        
-        let progress = ProgressBar::new(self.node_count as u64);
-        progress.set_style(ProgressStyle::default_bar()
-            .template("[{elapsed_precise}] {bar:40.cyan/blue} {pos:>7}/{len:7} {msg}")
-            .unwrap());
-        
-        let mut max_time: f64 = 0.0;
-        let mut nodes_reached = 0;
-        
-        while let Some(node) = heap.pop() {
-            if visited.contains(&node.hash) {
-                continue;
-            }
-            
-            visited.insert(node.hash);
-            nodes_reached += 1;
-            max_time = max_time.max(node.time);
-
-            progress.set_position(nodes_reached as u64);
-            if nodes_reached % 10000 == 0 {  // Update message less frequently
-                progress.set_message(format!("Time: {:.2}ms", max_time));
-            }
-            
-            // Get neighbors using consistent hashing
-            let neighbor_hashes = (1..=6).map(|i| {
-                let mut hasher = DefaultHasher::new();
-                (node.hash + i as u64).hash(&mut hasher);
-                hasher.finish() % self.node_count as u64
-            });
-
-            for neighbor_hash in neighbor_hashes {
-                if !visited.contains(&neighbor_hash) {
-                    heap.push(Node::new(
-                        neighbor_hash as usize,
-                        node.time + self.get_latency("local"),
-                        0
-                    ));
-                }
-            }
-        }
-        (max_time, nodes_reached)
-    }
-
-    fn propagate_fractal(&self, start_node: usize) -> (f64, usize) {
-        let mut visited = HashSet::new();
-        let mut heap = BinaryHeap::new();
-        heap.push(Node::new(start_node, 0.0, 0));
-        
-        let pb = ProgressBar::new(self.node_count as u64);
-        pb.set_style(ProgressStyle::default_bar()
-            .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos:>7}/{len:7} ({eta}) {msg}")
-            .unwrap()
-            .progress_chars("#>-"));
-        
-        let mut max_time: f64 = 0.0;
-        let mut nodes_reached = 0;
-        
-        while let Some(node) = heap.pop() {
-            if visited.contains(&node.hash) {
-                continue;
-            }
-            visited.insert(node.hash);
-            nodes_reached += 1;
-            
-            pb.set_position(nodes_reached as u64);
-            if nodes_reached % 10000 == 0 {
-                pb.set_message(format!("Time: {:.2}ms", max_time));
-            }
-            
-            max_time = max_time.max(node.time);
-
-            for (neighbor_index, connection_type) in self.get_neighbors(node.index) {
-                let neighbor_node = Node::new(
-                    neighbor_index,
-                    node.time + self.get_latency(connection_type),
-                    node.depth
-                );
-                
-                if !visited.contains(&neighbor_node.hash) {
-                    heap.push(neighbor_node);
-                }
-            }
-        }
-        pb.finish_with_message(format!("Complete! Time: {:.2}ms", max_time));
-        (max_time, nodes_reached)
-    }
-
-    fn propagate_with_visualization(&self, _start_node: usize) -> (f64, usize, PropagationVisualizer) {
-        let mut visualizer = PropagationVisualizer::new((self.node_count as f64).sqrt() as usize);
-        let mut total_nodes = 1;
-        let mut current_time = 0.0;
-        
-        // Add center node
-        visualizer.add_wave(0, 1, 0.0);
-        
-        let mut ring = 0;
-        while total_nodes < self.node_count {
-            ring += 1;
-            let nodes_in_ring = ring * 6;
-            current_time += self.get_latency("local");
-            
-            visualizer.add_wave(ring, nodes_in_ring, current_time);
-            total_nodes += nodes_in_ring;
-            
-            // Small delay to make visualization visible
-            std::thread::sleep(Duration::from_millis(50));
-        }
-        
-        (current_time, total_nodes, visualizer)
-    }
-
-    fn get_neighbors(&self, index: usize) -> Vec<(usize, &'static str)> {
-        let mut neighbors = Vec::new();
-        
-        // Calculate neighbors based on index
-        for i in 1..=6 {
-            let neighbor_index = (index + i) % self.node_count;
-            
-            // Determine connection type based on distance
-            let connection_type = if (neighbor_index as isize - index as isize).abs() < 10 {
-                "local"
-            } else if (neighbor_index as isize - index as isize).abs() < 100 {
-                "regional"
-            } else {
-                "global"
-            };
-            
-            neighbors.push((neighbor_index, connection_type));
-        }
-        
-        neighbors
-    }
-
     fn propagate_realtime(&self, start_node: usize) -> Result<(), io::Error> {
         let mut visited = HashSet::new();
         let mut heap = BinaryHeap::new();
@@ -475,9 +343,15 @@ impl GlobalHexNetwork {
         
         let pb = ProgressBar::new(self.node_count as u64);
         pb.set_style(ProgressStyle::default_bar()
-            .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos:>7}/{len:7} Nodes reached")
+            .template("{spinner:.green} [{bar:40.cyan/blue}] {pos:>7}/{len:7} Nodes reached")
             .unwrap()
             .progress_chars("#>-"));
+        
+        let mut min_network_time: f64 = f64::MAX;
+        let mut max_network_time: f64 = 0.0;
+        let mut total_network_time: f64 = 0.0;
+        let threshold = self.node_count - (self.node_count / 1000);
+        let mut last_stretch_start: Option<Instant> = None;
         
         while let Some(node) = heap.pop() {
             if visited.contains(&node.hash) {
@@ -485,15 +359,38 @@ impl GlobalHexNetwork {
             }
             
             visited.insert(node.hash);
-            pb.set_position(visited.len() as u64);
+            let nodes_reached = visited.len();
+            pb.set_position(nodes_reached as u64);
 
-            for (neighbor_index, connection_type) in self.get_neighbors(node.index) {
+            if nodes_reached == threshold {
+                last_stretch_start = Some(Instant::now());
+            }
+
+            // Get all neighbors and their latencies
+            let neighbors = self.get_neighbors(node.index);
+            
+            // Find the maximum latency for this batch of neighbors
+            let max_latency = neighbors.iter()
+                .map(|(_, conn_type)| self.get_latency(conn_type))
+                .max_by(|a, b| a.partial_cmp(b).unwrap())
+                .unwrap_or(0.0);
+
+            // Sleep only once for the maximum latency in this batch
+            let sleep_micros = (max_latency * 1000.0) as u64;
+            thread::sleep(Duration::from_micros(sleep_micros));
+
+            // Process all neighbors
+            for (neighbor_index, connection_type) in neighbors {
                 let latency = self.get_latency(connection_type);
-                thread::sleep(Duration::from_millis(latency as u64));
+                let network_time = node.time + latency;
+                
+                min_network_time = min_network_time.min(network_time);
+                max_network_time = max_network_time.max(network_time);
+                total_network_time += network_time;
                 
                 let neighbor_node = Node::new(
                     neighbor_index,
-                    0.0,
+                    network_time,
                     node.depth
                 );
                 
@@ -503,24 +400,66 @@ impl GlobalHexNetwork {
             }
         }
         
-        let elapsed = start_time.elapsed();
+        let real_elapsed = start_time.elapsed();
+        let avg_network_time = total_network_time / visited.len() as f64;
+        let final_stretch_time = last_stretch_start.map(|t| t.elapsed().as_secs_f64());
+        
         pb.finish_with_message(format!("Complete!"));
         println!("\nRealtime Simulation Complete:");
         println!("Nodes Reached: {}", visited.len());
-        println!("Total Time: {:.2} seconds", elapsed.as_secs_f64());
-        println!("Average Time per Node: {:.2} ms", elapsed.as_millis() as f64 / visited.len() as f64);
+        println!("Real Time: {:.2} seconds", real_elapsed.as_secs_f64());
+        if let Some(stretch_time) = final_stretch_time {
+            println!("Final 0.1% Time: {:.2} seconds", stretch_time);
+        }
+        println!("\nNetwork Times:");
+        println!("  Fastest: {:.2} ms", min_network_time);
+        println!("  Slowest: {:.2} ms", max_network_time);
+        println!("  Average: {:.2} ms", avg_network_time);
         println!("Mode: {}", if self.fractal_mode { "Fractal" } else { "Flat" });
         
         Ok(())
     }
 
+    fn get_neighbors(&self, index: usize) -> Vec<(usize, &'static str)> {
+        if self.fractal_mode {
+            // Convert from fractal neighbors format to standard format
+            let node = Node::new(index, 0.0, self.calculate_depth(index));
+            node.get_fractal_neighbors(self)
+                .into_iter()
+                .map(|(n, latency)| (n.index, self.get_connection_type(latency)))
+                .collect()
+        } else {
+            // Original flat hex routing
+            let mut neighbors = Vec::new();
+            for i in 1..=6 {
+                let neighbor_index = (index + i) % self.node_count;
+                neighbors.push((neighbor_index, "local"));
+            }
+            neighbors
+        }
+    }
+
+    fn calculate_depth(&self, index: usize) -> usize {
+        if index == 0 {
+            0
+        } else {
+            (index as f64).log(7.0).floor() as usize
+        }
+    }
+
+    fn get_connection_type(&self, latency: f64) -> &'static str {
+        if latency <= 0.1 { "local" }
+        else if latency <= 1.0 { "regional" }
+        else { "global" }
+    }
+
     fn get_latency(&self, connection_type: &str) -> f64 {
         // Base latencies in milliseconds
         let base_latency = match connection_type {
-            "local" => 0.1,     // 100 microseconds for local
-            "regional" => 1.0,   // 1ms for regional
-            "global" => 5.0,    // 5ms for global
-            _ => 0.1,
+            "local" => 1.0,     // 1ms for local
+            "regional" => 10.0,   // 10ms for regional
+            "global" => 120.0,    // 120ms for global
+            _ => 1.0,
         };
 
         // Only add a tiny bit of jitter to simulate normal network variance
@@ -571,7 +510,6 @@ struct VisualizationState {
     current_wave: usize,
     nodes_reached: usize,
     max_time: f64,
-    real_time: Duration,
     last_latency: f64,
 }
 
@@ -617,7 +555,6 @@ fn run_with_visualization(network: &GlobalHexNetwork, realtime: bool) -> Result<
                         current_wave: ring,
                         nodes_reached: visited.len(),
                         max_time: current_time,
-                        real_time: start_time.elapsed(),
                         last_latency: latency,
                     }).ok();
                 }
@@ -661,20 +598,4 @@ fn run_with_visualization(network: &GlobalHexNetwork, realtime: bool) -> Result<
 
     terminal.clear()?;
     Ok(())
-}
-
-fn calculate_nodes_in_ring(ring: usize, fractal_mode: bool) -> usize {
-    if fractal_mode {
-        if ring == 0 {
-            1
-        } else {
-            6_usize.pow(ring as u32) // EXPONENTIAL GROWTH!
-        }
-    } else {
-        if ring == 0 {
-            1
-        } else {
-            ring * 6 // Original linear growth
-        }
-    }
 }
