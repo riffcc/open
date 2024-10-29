@@ -7,3 +7,4 @@ edition = "2021"
 ratatui = "0.29.0"  # Adjust the version as needed
 crossterm = "0.28"  # Adjust the version as needed
 rand = "0.8.5"
+indicatif = "0.17.8"

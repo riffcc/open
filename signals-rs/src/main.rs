@@ -9,13 +9,13 @@ use rand::Rng;
 use ratatui::{
     backend::CrosstermBackend,
     Terminal,
-    widgets::{Block, Borders, Paragraph, canvas::Canvas},
+    widgets::{Block, Borders, canvas::Canvas, Paragraph},
     layout::{Layout, Constraint, Direction, Rect},
-    style::{Style, Color},
 };
 use crossterm::event::{self, Event, KeyCode};
-use std::sync::mpsc::{channel, Sender, Receiver};
+use std::sync::mpsc::channel;
 use std::thread;
+use indicatif::{ProgressBar, ProgressStyle};
 
 #[derive(Debug)]
 struct WaveFront {
@@ -48,6 +48,9 @@ struct PropagationVisualizer {
     current_wave: usize,
     start_time: Instant,
     hex_points: Vec<HexPoint>,
+    current_time: f64,
+    nodes_reached: usize,
+    last_latency: f64,
 }
 
 impl PropagationVisualizer {
@@ -63,6 +66,9 @@ impl PropagationVisualizer {
             current_wave: 0,
             start_time: Instant::now(),
             hex_points,
+            current_time: 0.0,
+            nodes_reached: 0,
+            last_latency: 0.0,
         }
     }
 
@@ -91,17 +97,38 @@ impl PropagationVisualizer {
     }
 
     fn draw(&self, f: &mut ratatui::Frame, area: Rect) {
-        let elapsed = self.start_time.elapsed().as_secs_f64() * 1000.0;
         let zoom = self.calculate_zoom();
         
+        let stats = format!(
+            "{:─^50}\n\
+             │ Network Time: {:>10.2}ms {:>21} │\n\
+             │ Real Time:    {:>10.2}s  {:>21} │\n\
+             │ Nodes:        {:>10}    {:>21} │\n\
+             │ Rings:        {:>10}    {:>21} │\n\
+             │ Last Latency: {:>10.2}ms {:>21} │\n\
+             │ Zoom:         {:>10.2}x  {:>21} │\n\
+             {:─^50}",
+            "─ STATS ─",
+            self.current_time,
+            "",
+            self.start_time.elapsed().as_secs_f64(),
+            "",
+            self.nodes_reached,
+            "",
+            self.current_wave,
+            "",
+            self.last_latency,
+            "",
+            zoom,
+            "",
+            "─"
+        );
+
         let canvas = Canvas::default()
-            .block(Block::default().title("Propagation Waves").borders(Borders::ALL))
+            .block(Block::default().borders(Borders::ALL))
             .paint(|ctx| {
+                // Draw all points up to current wave
                 for point in &self.hex_points {
-                    if point.ring > self.current_wave + 2 {
-                        continue;
-                    }
-                    
                     let screen_x = point.x * zoom;
                     let screen_y = point.y * zoom;
                     
@@ -109,21 +136,39 @@ impl PropagationVisualizer {
                         continue;
                     }
 
-                    if point.ring as f64 * 5.0 <= elapsed {
-                        ctx.print(screen_x, screen_y, "⬢");
-                    } else if point.ring as f64 * 5.0 <= elapsed + 5.0 {
-                        ctx.print(screen_x, screen_y, "⬡");
-                    }
+                    // Use different symbols based on zoom level and ring
+                    let symbol = if zoom > 1.0 {
+                        if point.ring == self.current_wave { "⬢" } else { "⬡" }
+                    } else {
+                        if point.ring == self.current_wave { "●" } else { "·" }
+                    };
+                    
+                    ctx.print(screen_x, screen_y, symbol);
                 }
             })
             .x_bounds([-20.0, 20.0])
             .y_bounds([-20.0, 20.0]);
 
+        // Render stats in top-right corner with fixed width
+        let stats_area = Rect::new(
+            area.right() - 52,  // 50 chars wide + 2 for border
+            area.top(),
+            52,
+            8  // Height of stats box
+        );
+        
+        let stats_paragraph = Paragraph::new(stats)
+            .block(Block::default());
+        
         f.render_widget(canvas, area);
+        f.render_widget(stats_paragraph, stats_area);
     }
 
     fn update_state(&mut self, state: VisualizationState) {
         self.current_wave = state.current_wave;
+        self.nodes_reached = state.nodes_reached;
+        self.current_time = state.max_time;
+        self.last_latency = state.last_latency;
         self.ensure_ring_exists(state.current_wave);
     }
 }
@@ -235,39 +280,65 @@ impl GlobalHexNetwork {
         }
     }
 
-    fn get_latency(&self, connection_type: &str) -> f64 {
-        let base_latency = match connection_type {
-            "local" => 5.0,
-            "regional" => 25.0,
-            "global" => 100.0,
-            _ => 5.0,
-        };
-
-        // Add realistic network effects:
-        // 1. Random jitter (1-5% variation)
-        let jitter = rand::thread_rng().gen_range(0.01..=0.05);
+    fn propagate_signal(&self, start_node: usize) -> (f64, f64, f64, usize) {
+        let mut visited = HashSet::new();
+        let mut heap = BinaryHeap::new();
+        heap.push(Node::new(start_node, 0.0, 0));
         
-        // 2. Distance-based delay
-        let distance_factor = 1.0 + (rand::thread_rng().gen_range(0.0..=0.1));
+        let pb = ProgressBar::new(self.node_count as u64);
+        pb.set_style(ProgressStyle::default_bar()
+            .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos:>7}/{len:7} ({eta}) {msg}")
+            .unwrap()
+            .progress_chars("#>-"));
         
-        // 3. Network congestion simulation
-        let congestion = 1.0 + (self.node_count as f64 / 1_000_000.0);
+        let mut max_time: f64 = 0.0;
+        let mut min_time: f64 = f64::MAX;
+        let mut total_time: f64 = 0.0;
+        let mut nodes_reached = 0;
+        
+        while let Some(node) = heap.pop() {
+            if visited.contains(&node.hash) {
+                continue;
+            }
+            visited.insert(node.hash);
+            nodes_reached += 1;
+            
+            min_time = min_time.min(node.time);
+            max_time = max_time.max(node.time);
+            total_time += node.time;
+            
+            pb.set_position(nodes_reached as u64);
+            if nodes_reached % 10000 == 0 {
+                pb.set_message(format!("Time: {:.2}ms", max_time));
+            }
 
-        base_latency * (1.0 + jitter) * distance_factor * congestion
-    }
-
-    fn propagate_signal(&self, start_node: usize) -> (f64, usize) {
-        if self.fractal_mode {
-            self.propagate_fractal(start_node)
-        } else {
-            self.propagate_flat(start_node)
+            for (neighbor_index, connection_type) in self.get_neighbors(node.index) {
+                let neighbor_node = Node::new(
+                    neighbor_index,
+                    node.time + self.get_latency(connection_type),
+                    node.depth
+                );
+                
+                if !visited.contains(&neighbor_node.hash) {
+                    heap.push(neighbor_node);
+                }
+            }
         }
+        
+        let avg_time = total_time / nodes_reached as f64;
+        pb.finish_with_message(format!("Complete!"));
+        (max_time, min_time, avg_time, nodes_reached)
     }
 
     fn propagate_flat(&self, start_node: usize) -> (f64, usize) {
         let mut visited = HashSet::new();
         let mut heap = BinaryHeap::new();
         heap.push(Node::new(start_node, 0.0, 0));
+        
+        let progress = ProgressBar::new(self.node_count as u64);
+        progress.set_style(ProgressStyle::default_bar()
+            .template("[{elapsed_precise}] {bar:40.cyan/blue} {pos:>7}/{len:7} {msg}")
+            .unwrap());
         
         let mut max_time: f64 = 0.0;
         let mut nodes_reached = 0;
@@ -281,6 +352,11 @@ impl GlobalHexNetwork {
             nodes_reached += 1;
             max_time = max_time.max(node.time);
 
+            progress.set_position(nodes_reached as u64);
+            if nodes_reached % 10000 == 0 {  // Update message less frequently
+                progress.set_message(format!("Time: {:.2}ms", max_time));
+            }
+            
             // Get neighbors using consistent hashing
             let neighbor_hashes = (1..=6).map(|i| {
                 let mut hasher = DefaultHasher::new();
@@ -306,6 +382,12 @@ impl GlobalHexNetwork {
         let mut heap = BinaryHeap::new();
         heap.push(Node::new(start_node, 0.0, 0));
         
+        let pb = ProgressBar::new(self.node_count as u64);
+        pb.set_style(ProgressStyle::default_bar()
+            .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos:>7}/{len:7} ({eta}) {msg}")
+            .unwrap()
+            .progress_chars("#>-"));
+        
         let mut max_time: f64 = 0.0;
         let mut nodes_reached = 0;
         
@@ -316,24 +398,26 @@ impl GlobalHexNetwork {
             visited.insert(node.hash);
             nodes_reached += 1;
             
-            // Debug print
-            println!("Nodes reached: {}, Total nodes: {}, Percentage: {}%", 
-                nodes_reached, 
-                self.node_count,
-                (nodes_reached as f64 / self.node_count as f64 * 100.0));
+            pb.set_position(nodes_reached as u64);
+            if nodes_reached % 10000 == 0 {
+                pb.set_message(format!("Time: {:.2}ms", max_time));
+            }
             
             max_time = max_time.max(node.time);
 
-            for (neighbor, latency) in node.get_fractal_neighbors(self) {
-                if !visited.contains(&neighbor.hash) {
-                    heap.push(Node::new(
-                        neighbor.index,
-                        node.time + latency,
-                        neighbor.depth
-                    ));
+            for (neighbor_index, connection_type) in self.get_neighbors(node.index) {
+                let neighbor_node = Node::new(
+                    neighbor_index,
+                    node.time + self.get_latency(connection_type),
+                    node.depth
+                );
+                
+                if !visited.contains(&neighbor_node.hash) {
+                    heap.push(neighbor_node);
                 }
             }
         }
+        pb.finish_with_message(format!("Complete! Time: {:.2}ms", max_time));
         (max_time, nodes_reached)
     }
 
@@ -360,6 +444,89 @@ impl GlobalHexNetwork {
         
         (current_time, total_nodes, visualizer)
     }
+
+    fn get_neighbors(&self, index: usize) -> Vec<(usize, &'static str)> {
+        let mut neighbors = Vec::new();
+        
+        // Calculate neighbors based on index
+        for i in 1..=6 {
+            let neighbor_index = (index + i) % self.node_count;
+            
+            // Determine connection type based on distance
+            let connection_type = if (neighbor_index as isize - index as isize).abs() < 10 {
+                "local"
+            } else if (neighbor_index as isize - index as isize).abs() < 100 {
+                "regional"
+            } else {
+                "global"
+            };
+            
+            neighbors.push((neighbor_index, connection_type));
+        }
+        
+        neighbors
+    }
+
+    fn propagate_realtime(&self, start_node: usize) -> Result<(), io::Error> {
+        let mut visited = HashSet::new();
+        let mut heap = BinaryHeap::new();
+        let start_time = Instant::now();
+        heap.push(Node::new(start_node, 0.0, 0));
+        
+        let pb = ProgressBar::new(self.node_count as u64);
+        pb.set_style(ProgressStyle::default_bar()
+            .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos:>7}/{len:7} Nodes reached")
+            .unwrap()
+            .progress_chars("#>-"));
+        
+        while let Some(node) = heap.pop() {
+            if visited.contains(&node.hash) {
+                continue;
+            }
+            
+            visited.insert(node.hash);
+            pb.set_position(visited.len() as u64);
+
+            for (neighbor_index, connection_type) in self.get_neighbors(node.index) {
+                let latency = self.get_latency(connection_type);
+                thread::sleep(Duration::from_millis(latency as u64));
+                
+                let neighbor_node = Node::new(
+                    neighbor_index,
+                    0.0,
+                    node.depth
+                );
+                
+                if !visited.contains(&neighbor_node.hash) {
+                    heap.push(neighbor_node);
+                }
+            }
+        }
+        
+        let elapsed = start_time.elapsed();
+        pb.finish_with_message(format!("Complete!"));
+        println!("\nRealtime Simulation Complete:");
+        println!("Nodes Reached: {}", visited.len());
+        println!("Total Time: {:.2} seconds", elapsed.as_secs_f64());
+        println!("Average Time per Node: {:.2} ms", elapsed.as_millis() as f64 / visited.len() as f64);
+        println!("Mode: {}", if self.fractal_mode { "Fractal" } else { "Flat" });
+        
+        Ok(())
+    }
+
+    fn get_latency(&self, connection_type: &str) -> f64 {
+        // Base latencies in milliseconds
+        let base_latency = match connection_type {
+            "local" => 0.1,     // 100 microseconds for local
+            "regional" => 1.0,   // 1ms for regional
+            "global" => 5.0,    // 5ms for global
+            _ => 0.1,
+        };
+
+        // Only add a tiny bit of jitter to simulate normal network variance
+        let jitter = rand::thread_rng().gen_range(0.95..=1.05);  // ±5% variance
+        base_latency * jitter
+    }
 }
 
 fn main() -> Result<(), io::Error> {
@@ -368,21 +535,35 @@ fn main() -> Result<(), io::Error> {
         .and_then(|s| s.parse::<usize>().ok())
         .unwrap_or(10_000);
     let fractal_mode = args.contains(&"--fractal".to_string());
-    let viz_mode = args.contains(&"--viz".to_string());
+    let viz_mode = args.contains(&"--viz".to_string()) || args.contains(&"--vis".to_string());
+    let realtime = args.contains(&"--realtime".to_string());
 
     let network = GlobalHexNetwork::new(node_count, fractal_mode);
 
-    if viz_mode {
-        // Run with visualization
-        run_with_visualization(&network)
-    } else {
-        // Run at full speed
-        let (max_time, nodes_reached) = network.propagate_signal(0);
-        println!("Simulation Complete:");
-        println!("Nodes Reached: {}", nodes_reached);
-        println!("Max Time: {:.2} ms", max_time);
-        println!("Mode: {}", if fractal_mode { "Fractal" } else { "Flat" });
-        Ok(())
+    match (realtime, viz_mode) {
+        (true, true) => {
+            // Realtime with visualization
+            run_with_visualization(&network, true)
+        }
+        (true, false) => {
+            // Realtime without visualization
+            network.propagate_realtime(0)
+        }
+        (false, true) => {
+            // Normal simulation with visualization
+            run_with_visualization(&network, false)
+        }
+        (false, false) => {
+            // Normal simulation without visualization
+            let (max_time, min_time, avg_time, nodes_reached) = network.propagate_signal(0);
+            println!("\nSimulation Complete:");
+            println!("Nodes Reached: {}", nodes_reached);
+            println!("Fastest Node: {:.2} ms", min_time);
+            println!("Slowest Node: {:.2} ms", max_time);
+            println!("Average Time: {:.2} ms", avg_time);
+            println!("Mode: {}", if fractal_mode { "Fractal" } else { "Flat" });
+            Ok(())
+        }
     }
 }
 
@@ -390,33 +571,66 @@ struct VisualizationState {
     current_wave: usize,
     nodes_reached: usize,
     max_time: f64,
+    real_time: Duration,
+    last_latency: f64,
 }
 
-fn run_with_visualization(network: &GlobalHexNetwork) -> Result<(), io::Error> {
+fn run_with_visualization(network: &GlobalHexNetwork, realtime: bool) -> Result<(), io::Error> {
     let (tx, rx) = channel::<VisualizationState>();
     
     // Clone network data needed for simulation
     let node_count = network.node_count;
     let fractal_mode = network.fractal_mode;
     let network_thread = GlobalHexNetwork::new(node_count, fractal_mode);
+    let start_time = Instant::now();
     
-    // Run simulation in separate thread with owned data
     thread::spawn(move || {
-        let (max_time, nodes_reached) = network_thread.propagate_signal(0);
-        if nodes_reached % 100 == 0 {
-            tx.send(VisualizationState {
-                current_wave: (nodes_reached as f64).sqrt() as usize / 6,
-                nodes_reached,
-                max_time,
-            }).ok();
+        let mut visited = HashSet::new();
+        let mut heap = BinaryHeap::new();
+        heap.push(Node::new(0, 0.0, 0));
+        let mut current_ring = 0;
+        let mut current_time = 0.0;
+        
+        while let Some(node) = heap.pop() {
+            if visited.contains(&node.hash) {
+                continue;
+            }
+            
+            visited.insert(node.hash);
+            let ring = (visited.len() as f64).sqrt() as usize / 2;
+            
+            // Only sleep once per ring in realtime mode
+            if realtime && ring > current_ring {
+                thread::sleep(Duration::from_millis(5)); // Small fixed delay per ring
+                current_ring = ring;
+            }
+
+            for (neighbor_index, connection_type) in network_thread.get_neighbors(node.index) {
+                let latency = network_thread.get_latency(connection_type);
+                current_time += latency;
+                
+                let neighbor_node = Node::new(neighbor_index, current_time, node.depth);
+                if !visited.contains(&neighbor_node.hash) {
+                    heap.push(neighbor_node);
+                    
+                    tx.send(VisualizationState {
+                        current_wave: ring,
+                        nodes_reached: visited.len(),
+                        max_time: current_time,
+                        real_time: start_time.elapsed(),
+                        last_latency: latency,
+                    }).ok();
+                }
+            }
         }
     });
 
-    // Visualization loop
     let stdout = io::stdout();
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
-    let mut visualizer = PropagationVisualizer::new(10); // Start small
+    let mut visualizer = PropagationVisualizer::new(10);
+
+    terminal.clear()?;
 
     loop {
         // Non-blocking check for updates
@@ -428,34 +642,15 @@ fn run_with_visualization(network: &GlobalHexNetwork) -> Result<(), io::Error> {
             let chunks = Layout::default()
                 .direction(Direction::Vertical)
                 .margin(1)
-                .constraints(
-                    [
-                        Constraint::Percentage(20),
-                        Constraint::Percentage(60),
-                        Constraint::Percentage(20),
-                    ]
-                    .as_ref(),
-                )
+                .constraints([
+                    Constraint::Percentage(100),
+                ])
                 .split(f.area());
 
-            let title = format!("GlobalHexNetwork Simulation");
-            let block = Block::default().title(title).borders(Borders::ALL);
-            f.render_widget(block, chunks[0]);
-
-            visualizer.draw(f, chunks[1]);
-
-            let stats = Paragraph::new(format!(
-                "Nodes Reached: {}\nMax Time: {:.2} ms\nRings: {}",
-                visualizer.current_wave * 6,
-                visualizer.waves[visualizer.current_wave].time,
-                visualizer.current_wave
-            ))
-            .block(Block::default().title("Propagation Stats").borders(Borders::ALL));
-            f.render_widget(stats, chunks[2]);
+            visualizer.draw(f, chunks[0]);
         })?;
 
-        // Check for quit with timeout
-        if event::poll(Duration::from_millis(16))? { // ~60 FPS max
+        if event::poll(Duration::from_millis(16))? {
             if let Event::Key(key) = event::read()? {
                 if key.code == KeyCode::Char('q') {
                     break;
@@ -463,5 +658,23 @@ fn run_with_visualization(network: &GlobalHexNetwork) -> Result<(), io::Error> {
             }
         }
     }
+
+    terminal.clear()?;
     Ok(())
+}
+
+fn calculate_nodes_in_ring(ring: usize, fractal_mode: bool) -> usize {
+    if fractal_mode {
+        if ring == 0 {
+            1
+        } else {
+            6_usize.pow(ring as u32) // EXPONENTIAL GROWTH!
+        }
+    } else {
+        if ring == 0 {
+            1
+        } else {
+            ring * 6 // Original linear growth
+        }
+    }
 }
