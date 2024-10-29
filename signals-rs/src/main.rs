@@ -10,6 +10,7 @@ use ratatui::widgets::{Block, Borders, Gauge, Paragraph};
 use ratatui::layout::{Layout, Constraint, Direction};
 use ratatui::style::{Style, Color};
 use crossterm::event::{self, Event, KeyCode};
+use rand::Rng;
 
 #[derive(Copy, Clone)]
 struct Node {
@@ -119,7 +120,24 @@ impl GlobalHexNetwork {
     }
 
     fn get_latency(&self, connection_type: &str) -> f64 {
-        *self.latencies.get(connection_type).unwrap_or(&5.0)
+        let base_latency = match connection_type {
+            "local" => 5.0,
+            "regional" => 25.0,
+            "global" => 100.0,
+            _ => 5.0,
+        };
+
+        // Add realistic network effects:
+        // 1. Random jitter (1-5% variation)
+        let jitter = rand::thread_rng().gen_range(0.01..=0.05);
+        
+        // 2. Distance-based delay
+        let distance_factor = 1.0 + (rand::thread_rng().gen_range(0.0..=0.1));
+        
+        // 3. Network congestion simulation
+        let congestion = 1.0 + (self.node_count as f64 / 1_000_000.0);
+
+        base_latency * (1.0 + jitter) * distance_factor * congestion
     }
 
     fn propagate_signal(&self, start_node: usize) -> (f64, usize) {
@@ -142,6 +160,10 @@ impl GlobalHexNetwork {
             if visited.contains(&node.hash) {
                 continue;
             }
+            
+            // Add processing delay
+            std::thread::sleep(std::time::Duration::from_micros(1));
+            
             visited.insert(node.hash);
             nodes_reached += 1;
             max_time = max_time.max(node.time);
@@ -180,6 +202,13 @@ impl GlobalHexNetwork {
             }
             visited.insert(node.hash);
             nodes_reached += 1;
+            
+            // Debug print
+            println!("Nodes reached: {}, Total nodes: {}, Percentage: {}%", 
+                nodes_reached, 
+                self.node_count,
+                (nodes_reached as f64 / self.node_count as f64 * 100.0));
+            
             max_time = max_time.max(node.time);
 
             for (neighbor, latency) in node.get_fractal_neighbors(self) {
@@ -211,7 +240,9 @@ fn main() -> Result<(), io::Error> {
     terminal.clear()?;
 
     let (max_time, nodes_reached) = network.propagate_signal(0);
-    let progress = (nodes_reached as f64 / network.node_count as f64) * 100.0;
+    let progress = (nodes_reached as f64 / network.node_count as f64 * 100.0)
+        .min(100.0)
+        .max(0.0);
 
     loop {
         terminal.draw(|f| {
@@ -236,7 +267,7 @@ fn main() -> Result<(), io::Error> {
             let gauge = Gauge::default()
                 .block(Block::default().title("Propagation Progress").borders(Borders::ALL))
                 .gauge_style(Style::default().fg(Color::Green))
-                .percent(progress as u16);
+                .percent(progress.round() as u16);
             f.render_widget(gauge, chunks[1]);
 
             let stats = Paragraph::new(format!(
