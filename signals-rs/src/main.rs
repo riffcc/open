@@ -9,21 +9,18 @@ use rand::Rng;
 use ratatui::{
     backend::CrosstermBackend,
     Terminal,
-    widgets::{Block, Borders, canvas::Canvas, Paragraph},
+    widgets::{
+        Block, 
+        Borders, 
+        canvas::{self, Canvas},
+        Paragraph
+    },
     layout::{Layout, Constraint, Direction, Rect},
 };
 use crossterm::event::{self, Event, KeyCode};
 use std::sync::mpsc::channel;
 use std::thread;
 use indicatif::{ProgressBar, ProgressStyle};
-
-#[derive(Debug)]
-struct WaveFront {
-    ring: usize,
-    nodes: usize,
-    time: f64,
-    start_time: Instant,
-}
 
 struct HexPoint {
     x: f64,
@@ -50,24 +47,22 @@ struct PropagationVisualizer {
     current_time: f64,
     nodes_reached: usize,
     last_latency: f64,
+    total_nodes: usize,
 }
 
 impl PropagationVisualizer {
-    fn new(initial_rings: usize) -> Self {
-        let capacity = initial_rings * 6 + 1; // Preallocate exact space needed
-        let mut hex_points = Vec::with_capacity(capacity);
-        
-        // Generate points lazily
-        hex_points.push(HexPoint { x: 0.0, y: 0.0, ring: 0 });
-        
-        Self {
+    fn new(initial_rings: usize, total_nodes: usize) -> Self {
+        let mut visualizer = Self {
             current_wave: 0,
             start_time: Instant::now(),
-            hex_points,
+            hex_points: Vec::new(),  // Start empty
             current_time: 0.0,
-            nodes_reached: 0,
+            nodes_reached: 1,  // Start with origin counted
             last_latency: 0.0,
-        }
+            total_nodes,
+        };
+        visualizer.ensure_ring_exists(initial_rings);  // Pre-populate initial rings
+        visualizer
     }
 
     fn ensure_ring_exists(&mut self, ring: usize) {
@@ -87,35 +82,13 @@ impl PropagationVisualizer {
     fn draw(&self, f: &mut ratatui::Frame, area: Rect) {
         let zoom = self.calculate_zoom();
         
-        let stats = format!(
-            "{:─^50}\n\
-             │ Network Time: {:>10.2}ms {:>21} │\n\
-             │ Real Time:    {:>10.2}s  {:>21} │\n\
-             │ Nodes:        {:>10}    {:>21} │\n\
-             │ Rings:        {:>10}    {:>21} │\n\
-             │ Last Latency: {:>10.2}ms {:>21} │\n\
-             │ Zoom:         {:>10.2}x  {:>21} │\n\
-             {:─^50}",
-            "─ STATS ─",
-            self.current_time,
-            "",
-            self.start_time.elapsed().as_secs_f64(),
-            "",
-            self.nodes_reached,
-            "",
-            self.current_wave,
-            "",
-            self.last_latency,
-            "",
-            zoom,
-            "",
-            "─"
-        );
-
         let canvas = Canvas::default()
             .block(Block::default().borders(Borders::ALL))
             .paint(|ctx| {
-                // Draw all points up to current wave
+                // Always draw the origin node
+                self.draw_node(ctx, 0.0, 0.0, "●", ratatui::style::Color::Green);
+
+                // Draw rest of the nodes
                 for point in &self.hex_points {
                     let screen_x = point.x * zoom;
                     let screen_y = point.y * zoom;
@@ -124,32 +97,114 @@ impl PropagationVisualizer {
                         continue;
                     }
 
-                    // Use different symbols based on zoom level and ring
-                    let symbol = if zoom > 1.0 {
-                        if point.ring == self.current_wave { "⬢" } else { "⬡" }
-                    } else {
-                        if point.ring == self.current_wave { "●" } else { "·" }
-                    };
-                    
-                    ctx.print(screen_x, screen_y, symbol);
+                    let depth = (point.ring as f64).log(7.0).floor() as usize;
+                    if let Some((symbol, color)) = self.get_node_style(point.ring, depth) {
+                        self.draw_node(ctx, screen_x, screen_y, symbol, color);
+                        self.draw_structural_connection(ctx, point, zoom);
+                    }
                 }
             })
             .x_bounds([-20.0, 20.0])
             .y_bounds([-20.0, 20.0]);
 
-        // Render stats in top-right corner with fixed width
-        let stats_area = Rect::new(
-            area.right() - 52,  // 50 chars wide + 2 for border
-            area.top(),
-            52,
-            8  // Height of stats box
-        );
-        
-        let stats_paragraph = Paragraph::new(stats)
-            .block(Block::default());
-        
         f.render_widget(canvas, area);
-        f.render_widget(stats_paragraph, stats_area);
+        self.draw_stats(f, area);
+    }
+
+    fn get_node_style(&self, ring: usize, depth: usize) -> Option<(&'static str, ratatui::style::Color)> {
+        if ring == self.current_wave {
+            // Rainbow wave front based on depth
+            Some(("◆", match depth % 6 {
+                0 => ratatui::style::Color::Rgb(255, 50, 50),   // Red
+                1 => ratatui::style::Color::Rgb(255, 200, 50),  // Orange
+                2 => ratatui::style::Color::Rgb(50, 255, 50),   // Green
+                3 => ratatui::style::Color::Rgb(50, 200, 255),  // Cyan
+                4 => ratatui::style::Color::Rgb(150, 50, 255),  // Purple
+                _ => ratatui::style::Color::Rgb(255, 50, 255),  // Magenta
+            }))
+        } else {
+            // Trail effect - fade from bright to dark based on distance from wave
+            let distance = (self.current_wave as i64 - ring as i64).abs() as u8;
+            let pulse = (self.current_time * 5.0).sin() * 0.3 + 0.7; // 0.4 to 1.0 oscillation
+            let intensity = ((255.0 * pulse) - (distance as f64 * 10.0)).max(30.0) as u8;
+            Some(("·", ratatui::style::Color::Rgb(
+                intensity / 2,
+                intensity / 3,
+                intensity
+            )))
+        }
+    }
+
+    fn draw_node<'a>(&self, ctx: &mut canvas::Context<'a>, x: f64, y: f64, symbol: &'a str, color: ratatui::style::Color) {
+        ctx.print(
+            x, y,
+            ratatui::text::Span::styled(
+                symbol,
+                ratatui::style::Style::default().fg(color)
+            )
+        );
+    }
+
+    fn draw_structural_connection<'a>(&self, ctx: &mut canvas::Context<'a>, point: &HexPoint, zoom: f64) {
+        if point.ring > 0 {
+            let parent_ring = point.ring / 7;
+            let parent_angle = (point.ring % 6) as f64 * std::f64::consts::PI / 3.0;
+            let parent_x = (parent_ring as f64 * parent_angle.cos()) * zoom;
+            let parent_y = (parent_ring as f64 * parent_angle.sin()) * zoom;
+            
+            let dx = point.x * zoom - parent_x;
+            let dy = point.y * zoom - parent_y;
+            
+            // Fancy connection characters based on angle
+            let connection_char = match ((dy/dx).atan() * 8.0 / std::f64::consts::PI) as i32 {
+                -4|-3 => "╲",
+                -2|-1 => "╱",
+                0 => "┃",
+                1|2 => "╲",
+                3|4 => "╱",
+                _ => "━",
+            };
+            
+            // Color based on depth
+            let depth = (point.ring as f64).log(7.0).floor() as u8;
+            let color = ratatui::style::Color::Rgb(
+                155 + depth * 20,
+                155 - depth * 30,
+                155 + depth * 40
+            );
+            
+            self.draw_node(
+                ctx,
+                (point.x * zoom + parent_x) / 2.0,
+                (point.y * zoom + parent_y) / 2.0,
+                connection_char,
+                color
+            );
+        }
+    }
+
+    fn draw_stats(&self, f: &mut ratatui::Frame, area: Rect) {
+        let stats = format!(
+            "Network Time: {:.2}ms | Nodes: {}/{} | Depth: {} | Latency: {:.2}ms",
+            self.current_time,
+            self.nodes_reached,
+            self.total_nodes,
+            (self.current_wave as f64).log(7.0).floor() as usize,
+            self.last_latency
+        );
+
+        let stats_widget = Paragraph::new(stats)
+            .block(Block::default())
+            .style(ratatui::style::Style::default());
+
+        let stats_area = Rect::new(
+            area.x + 1,
+            area.y + area.height - 1,
+            area.width - 2,
+            1
+        );
+
+        f.render_widget(stats_widget, stats_area);
     }
 
     fn update_state(&mut self, state: VisualizationState) {
@@ -189,9 +244,10 @@ impl Node {
         
         // Local cluster connections (always available)
         let cluster_start = (self.index / cluster_size) * cluster_size;
+        let cluster_end = cluster_start + cluster_size;
         for i in 0..6 {
             let neighbor_index = cluster_start + ((self.index - cluster_start + i + 1) % cluster_size);
-            if neighbor_index < network.node_count {
+            if neighbor_index < network.node_count && neighbor_index < cluster_end {
                 neighbors.push((
                     Node::new(neighbor_index, self.time, current_depth),
                     network.get_latency("local")
@@ -212,9 +268,12 @@ impl Node {
 
         // Child connections (if space remains)
         let child_base = self.index * 7 + 1;
+        let next_cluster_size = 7_usize.pow((current_depth + 1) as u32);
+        let child_cluster_end = ((child_base / next_cluster_size) + 1) * next_cluster_size;
+        
         for i in 0..6 {
             let child_index = child_base + i;
-            if child_index < network.node_count {
+            if child_index < network.node_count && child_index < child_cluster_end {
                 neighbors.push((
                     Node::new(child_index, self.time, current_depth + 1),
                     network.get_latency("global")
@@ -536,80 +595,87 @@ struct VisualizationState {
     last_latency: f64,
 }
 
-fn run_with_visualization(network: GlobalHexNetwork, realtime: bool) -> Result<(), io::Error> {
+fn run_with_visualization(network: GlobalHexNetwork, _realtime: bool) -> Result<(), io::Error> {
     let (tx, rx) = channel::<VisualizationState>();
+    let node_count = network.node_count;
     
     thread::spawn(move || {
         let mut visited = HashSet::new();
         let mut event_queue = BinaryHeap::new();
-        let start_time = Instant::now();
         let mut last_viz_update = Instant::now();
         
+        // Create and count origin node
+        let origin = Node::new(0, 0.0, 0);
+        visited.insert(origin.hash);
         event_queue.push(NetworkEvent {
-            node: Node::new(0, 0.0, 0),
+            node: origin,
             arrival_time: 0.0,
         });
 
+        // Initial visualization state
+        tx.send(VisualizationState {
+            current_wave: 0,
+            nodes_reached: 1,
+            max_time: 0.0,
+            last_latency: 0.0,
+        }).ok();
+
         while let Some(event) = event_queue.pop() {
-            if visited.contains(&event.node.hash) {
-                continue;
+            // Stop if we've reached our node limit
+            if visited.len() >= node_count {
+                break;
             }
 
-            // In realtime mode, wait until the next event's network time
-            if realtime {
-                let current_time = start_time.elapsed().as_secs_f64();
-                if event.arrival_time > current_time {
-                    thread::sleep(Duration::from_secs_f64(
-                        (event.arrival_time - current_time).max(0.0)
-                    ));
-                }
-            }
-
-            visited.insert(event.node.hash);
-            let ring = (visited.len() as f64).sqrt() as usize / 2;
-
-            // Batch process all neighbors that should arrive by now
-            let mut pending_neighbors = Vec::new();
+            // Process neighbors
             for (neighbor_index, connection_type) in network.get_neighbors(event.node.index) {
+                // Skip if we've hit our node limit or the index is out of bounds
+                if neighbor_index >= node_count || visited.len() >= node_count {
+                    continue;
+                }
+
                 let latency = network.get_latency(connection_type);
                 let arrival_time = event.arrival_time + (latency / 1000.0);
                 
                 let neighbor_node = Node::new(
                     neighbor_index,
                     arrival_time,
-                    event.node.depth
+                    event.node.depth + 1
                 );
 
                 if !visited.contains(&neighbor_node.hash) {
-                    pending_neighbors.push(NetworkEvent {
+                    visited.insert(neighbor_node.hash);
+                    event_queue.push(NetworkEvent {
                         node: neighbor_node,
                         arrival_time,
                     });
+
+                    // Send update for each new node (more frequent updates)
+                    if last_viz_update.elapsed() > Duration::from_millis(16) {
+                        tx.send(VisualizationState {
+                            current_wave: neighbor_node.depth,
+                            nodes_reached: visited.len(),
+                            max_time: arrival_time * 1000.0,
+                            last_latency: latency,
+                        }).ok();
+                        last_viz_update = Instant::now();
+                    }
                 }
             }
-
-            // Add all pending neighbors at once
-            for neighbor_event in pending_neighbors {
-                event_queue.push(neighbor_event);
-            }
-
-            // Update visualization at 60fps
-            if last_viz_update.elapsed() > Duration::from_millis(16) {
-                tx.send(VisualizationState {
-                    current_wave: ring,
-                    nodes_reached: visited.len(),
-                    max_time: event.arrival_time * 1000.0,
-                    last_latency: event.arrival_time * 1000.0,
-                }).ok();
-                last_viz_update = Instant::now();
-            }
         }
+
+        // Send final state
+        tx.send(VisualizationState {
+            current_wave: event_queue.peek().map_or(0, |e| e.node.depth),
+            nodes_reached: visited.len(),
+            max_time: event_queue.peek().map_or(0.0, |e| e.arrival_time * 1000.0),
+            last_latency: 0.0,
+        }).ok();
     });
 
     let stdout = io::stdout();
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
-    let mut visualizer = PropagationVisualizer::new(10);
+    let mut visualizer = PropagationVisualizer::new(10, node_count);  // Use saved node_count
 
     terminal.clear()?;
 
