@@ -1,6 +1,13 @@
 use std::collections::{HashMap, VecDeque};
 use std::f64;
 use std::time::Instant;
+use ratatui::backend::CrosstermBackend;
+use ratatui::Terminal;
+use ratatui::widgets::{Block, Borders, Gauge, List, ListItem, Paragraph};
+use ratatui::layout::{Layout, Constraint, Direction};
+use ratatui::style::{Style, Color};
+use crossterm::event::{self, Event, KeyCode};
+use std::io;
 
 struct GlobalHexNetwork {
     node_count: usize,
@@ -125,24 +132,82 @@ impl GlobalHexNetwork {
     }
 }
 
-fn main() {
-    let network = GlobalHexNetwork::new(100_000_000_000); // Example target node count
-    
-    println!("Running network propagation...");
-    let start_time = Instant::now();
-    let (max_time, nodes_reached) = network.propagate_signal(0);
-    let duration = start_time.elapsed();
+fn main() -> Result<(), io::Error> {
+    let mut network = GlobalHexNetwork::new(10_000); // Smaller node count for testing
+    let mut failure_rate = 0.0;
+    let mut attack_results = Vec::new();
 
-    println!("Max propagation time: {:.2} ms", max_time);
-    println!("Nodes reached: {}", nodes_reached);
-    println!("Propagation took: {:.2?}", duration);
+    let stdout = io::stdout();
+    let backend = CrosstermBackend::new(stdout);
+    let mut terminal = Terminal::new(backend)?;
 
-    println!("\nSimulating attack scenarios...");
-    for &rate in &[0.3, 0.5, 0.7] {
-        println!("\nSimulating {}% node failure", rate * 100.0);
-        let results = network.simulate_attack(rate);
-        for (i, (time, reached)) in results.iter().enumerate() {
-            println!("Round {}: Reached {} nodes, Max time: {:.2} ms", i + 1, reached, time);
+    loop {
+        terminal.draw(|f| {
+            let chunks = Layout::default()
+                .direction(Direction::Vertical)
+                .margin(1)
+                .constraints(
+                    [
+                        Constraint::Percentage(20),
+                        Constraint::Percentage(60),
+                        Constraint::Percentage(20),
+                    ]
+                    .as_ref(),
+                )
+                .split(f.size());
+
+            let block = Block::default().title("GlobalHexNetwork Simulation").borders(Borders::ALL);
+            f.render_widget(block, chunks[0]);
+
+            let (max_time, nodes_reached) = network.propagate_signal(0);
+            let progress = (nodes_reached as f64 / network.node_count as f64) * 100.0;
+
+            let gauge = Gauge::default()
+                .block(Block::default().title("Propagation Progress").borders(Borders::ALL))
+                .gauge_style(Style::default().fg(Color::Green))
+                .percent(progress as u16);
+            f.render_widget(gauge, chunks[1]);
+
+            let items: Vec<ListItem> = attack_results
+                .iter()
+                .enumerate()
+                .map(|(i, (time, reached))| {
+                    ListItem::new(format!(
+                        "Round {}: Reached {} nodes, Max time: {:.2} ms",
+                        i + 1,
+                        reached,
+                        time
+                    ))
+                })
+                .collect();
+            let list = List::new(items)
+                .block(Block::default().title("Attack Results").borders(Borders::ALL));
+            f.render_widget(list, chunks[2]);
+        })?;
+
+        if event::poll(std::time::Duration::from_millis(100))? {
+            if let Event::Key(key) = event::read()? {
+                match key.code {
+                    KeyCode::Char('q') => break,
+                    KeyCode::Char('+') => {
+                        failure_rate += 0.1;
+                        if failure_rate > 1.0 {
+                            failure_rate = 1.0;
+                        }
+                        attack_results = network.simulate_attack(failure_rate);
+                    }
+                    KeyCode::Char('-') => {
+                        failure_rate -= 0.1;
+                        if failure_rate < 0.0 {
+                            failure_rate = 0.0;
+                        }
+                        attack_results = network.simulate_attack(failure_rate);
+                    }
+                    _ => {}
+                }
+            }
         }
     }
+
+    Ok(())
 }
