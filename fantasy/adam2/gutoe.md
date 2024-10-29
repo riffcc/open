@@ -1,7 +1,52 @@
 # A Veracity-Based Grand Unified Theory of Everything
+This is an early paper, intended for academic comment and study.
+
+Formal papers are planned to expand on these ideas and invite more structured comment and discussion.
+
+## Table of Contents
+
+- [Abstract](#abstract)
+- [Introduction](#introduction)
+- [Core Concepts and Terminology](#core-concepts-and-terminology)
+   - [Veracity Rails](#veracity-rails)
+   - [Trust Rails](#trust-rails)
+   - [Cooperation Engines](#cooperation-engines)
+- [Theoretical Framework](#theoretical-framework)
+   - [1. Veracity Rails](#1-veracity-rails)
+   - [2. Trust Rails](#2-trust-rails)
+   - [3. The Entropy Maximization Hypothesis](#3-the-entropy-maximization-hypothesis)
+   - [4. Veracity as a Fundamental Force](#4-veracity-as-a-fundamental-force)
+   - [5. A Computational Universe](#5-a-computational-universe)
+   - [6. Lazy Computation](#6-lazy-computation)
+   - [7. Continuous Emergent Search](#7-continuous-emergent-search)
+- [Expanding the Framework](#expanding-the-framework)
+   - [I. The Entropy Maximisation Hypothesis](#i-the-entropy-maximisation-hypothesis)
+   - [II. State Exploration](#ii-state-exploration)
+   - [III. Decentralised Federation and Autonomy Model (Defederation)](#iii-decentralised-federation-and-autonomy-model-defederation)
+   - [IV. The Cooperation Engine](#iv-the-cooperation-engine)
+   - [V. Time Dilation as a Computational Relief Valve](#v-time-dilation-as-a-computational-relief-valve)
+   - [VI. The Rainbow Table](#vi-the-rainbow-table)
+   - [VII. The Causal Universe](#vii-the-causal-universe)
+   - [VIII. Paradoxical Resolution](#viii-paradoxical-resolution)
+   - [IX. The End State](#ix-the-end-state)
+- [Branching Reality](#branching-reality)
+   - [No Universal Truth](#no-universal-truth)
+   - [Douglas Adams Was Right](#douglas-adams-was-right)
+   - [Multiple Reality Management](#multiple-reality-management)
+   - [Holographic Boundaries and Preservation](#holographic-boundaries-and-preservation)
+- [Exploring existing physics](#exploring-existing-physics)
+
+- [Part I: Core Principles](#part-i-core-principles)
 
 ## Abstract
-This paper proposes a computational framework for understanding universal mechanics through veracity-based relationships and entropy maximization. Emerging from distributed systems and information theory rather than pure physics, it suggests our reality is an emergent property of these mechanisms, offering new perspectives while remaining compatible with known physical laws.
+This paper proposes a computational framework for understanding universal mechanics through veracity-based relationships and entropy maximization. Rather than emerging from pure physics, these mechanisms are inspired by distributed systems and information theory—fields that have demonstrated powerful insights into complex, emergent behaviors.
+
+The framework suggests our reality is an emergent property of these mechanisms, offering novel perspectives on quantum mechanics, consciousness, and the nature of existence while remaining compatible with known physical laws. Notably, it provides:
+
+1. A natural explanation for the emergence of complexity and life
+2. A universal ethical principle applicable to AI alignment
+3. A computational model for understanding paradox resolution
+4. A framework for understanding multi-dimensional time and causality
 
 ## Introduction
 This paper proposes a computational framework for understanding universal mechanics through veracity-based relationships and entropy maximization. These mechanisms are inspired by the principles of distributed systems and information theory, rather than pure physics.
@@ -13,7 +58,6 @@ useful for both AI alignment and new game theoretics.
 
 An attached supplemental paper suggests practical applications of these mechanisms in the fields
 of distributed systems, information theory, and AI, as well as AI alignment.
-
 
 ## Core Concepts and Terminology
 
@@ -148,6 +192,56 @@ We propose two major hypothesis, separately testable but strongly related:
 
 * That the universe's fundamental measure of the success of a particular state is the total entropy contained within it, and that the universe's ultimate function is to maximise entropy.
 
+
+### 8. Nihilism as a Computational Shortcut
+Entities may in a sense only exist when they are interacting with other entities through veracity rails.
+
+One form of veracity rail is that of simple physical proximity within space-time.
+
+Entities close enough to interact gravitationally may form a veracity rail that allows them to influence each other.
+
+With every physical and logical interaction being a veracity rail, it's possible to simulate only regions of spacetime that are actually interacting in a significant way, and only coarsely simulate everything else.
+
+This "cosmic nihilism" principle says that the universe simply does not exist outside of observations that exist between entities, and that this nihilism is a massively useful optimisation that makes simulating the infinite universe a little more finite.
+
+In short:
+   - Minimum veracity is required for persistent existence
+   - Entities below threshold dissolve or become insignificant
+     - but may be rediscovered and rehydrated
+       or simply recalculated from a consistent seed state.
+   - Thresholds vary based on context and environment
+   - Higher veracity enables stronger influence on reality
+   - System self-regulates through threshold mechanics
+
+### 9. Copy-on-Write Reality
+In computer filesystems, copy-on-write mechanisms allow for multiple objects to exist from the same base data, with changes to the data being applied to a new copy of the data, and the original data being left unchanged.
+
+In this logical framework, we can propose that each entity within the universe is a copy-on-write system, with the fundamental base state of each being changeable at each divergence point in the timeline of the universe.
+
+We do not propose the universe as data itself, but that the principles of copy-on-write objects and divergent, snapshottable state can be applied to our reality.
+
+When a new entity is created, it is created by copying the base state of the universe that led to its creation, and then applying the necessary changes to the copy to create the new entity. This is stored as an addition to what is essentially a multi-dimensional, multi-timeline, directed acyclic graph of all possible states.
+
+When an entity ceases to exist, its copy is discarded, and the base state of the universe is left unchanged. However, to preserve entropy, the ceased entity still exists - it is simply no longer referenced anywhere. 
+
+The information is technically retained, but it is no longer part of the universe in any real sense. Paradoxically, however, a record of it exists in the interactions it had with other entities - and the universe thus could be said to "remember" the event and entity and its state.
+
+Copy-on-write principles act as a powerful optimisation technique: allowing the universe to exist in a state that is effectively infinite, while only requiring the storage of a relatively small amount of data to represent each entity. It prevents runaway requirements of information storage by allowing the universe to reference only what changes within each interaction, and to cross reference states between trees and intersections and timelines to avoid massive duplication of information and state.
+
+In the end state of the universe, all entities within it lose their references and become pure information.
+
+### 10. The Infinite Computer
+With the ability to do an O(1) lookup of any state at any point in time, the universe becomes capable of
+simulating any possibility that occurred within its entire history,
+and if we suppose the universe is infinite, then it can simulate every possibility that has ever occurred,
+and every possibility that could ever occur.
+
+With the shortcuts described, the universe may be able to achieve perfect computational efficiency,
+being able to simply "figure out" anything that can be figured out.
+
+It would form the ideal answer to a civilization seeking to understand the universe,
+thus lending major credence to ideas of simulation as the basis of our reality.
+
 ## Expanding the Framework
 
 ### I. The Entropy Maximisation Hypothesis
@@ -271,114 +365,56 @@ A simple Cooperation Engine can exist as an open source software platform, that 
 
 Such an engine would be a powerful tool for social cohesion and global, local and personal cooperation.
 
-The Riff.CC Project is working on a primitive Cooperation Engine called Orbiter.
-Orbiter is an open source software platform designed to allow
+The Riff.CC Project is working on a primitive Cooperation Engine called [Orbiter](https://github.com/riffcc/orbiter).
 
+Orbiter is an open source software platform designed to allow people to work better together
+along existing trust rails, and to make it easy to form new trust rails.
 
-### IV. The Cognitive Engine
-"Slowly the pen touches paper, in the guidance of the words that you write"
-- The Light and the Glass
+### IV. Expanding Veracity Rails
+Let's expand on the idea of veracity rails a little more.
 
-The Cognitive Engine is a system based on the principles of Defederation and the Cooperation Engine, using these principles combined with concepts from the Lis distributed filesystem to form a system that can create, store, and evolve ideas while breaking apart the semantic meaning of the words and concepts to form:
+Veracity rails, as the fundamental building blocks of reality,
+are based on the idea that every single interaction between two entities
+could have an informational record associated with it,
+that the universe may keep track of.
 
-a self-reinforcing, self-healing, constantly thinking, event-driven
-learning system that aligns concepts and ideas into a cohesive whole.
+Entities can adjust the veracity rail according to new information or changes in state,
+as physical processes can as well, and as the states change they change the properties
+of the entities involved.
 
-It is a new model for AI language models, forming what we're describing as a "Cognition Network Language Model" or CNLM.
-
-### V. The Reality Layer
-The Cognitive Engine forms a powerful tool for understanding the world and theorising about the universe, but it forms a very interesting base layer for something bigger.
-
-From a simple base principle of an unfolding universe,
-we can actually start to model and simulate entire universes
-on modest hardware.
-
-We expect quantum computing to offer a massive speedup for this work,
-but we propose a number of novel (and hauntingly familiar) mechanisms
-for reducing the computational cost of creating an entire simulated
-reality with physical laws, properties and constants approaching our own -
-and we believe through this we can also answer questions
-about the anthropic principle and how the constants could have been selected.
-
-
-## Part I: Core Principles
-
-Veracity is the fundamental measurement of many different relationships,
-malleable and to a sense defined by both the entities involved in each observation,
-interaction or connection.
-
-### A. Veracity as Fundamental Force
-Veracity serves as the metric for measuring the "strength" and coherence of relationships across all entities and forces. This “force” shapes our understanding of connections between entities, manifesting as adaptable, multi-layered links that regulate information flow and state transformations.
-
-1. **Connection Strength Dynamics**
+#### Connection Strength Dynamics
    - Veracity metrics: Each connection between entities holds a veracity value that reflects reliability, coherence, or opposition, depending on the entities' alignment or divergence.
    - Variable dynamics: Connections fluctuate based on coherence, where low-veracity connections dissipate, and high-veracity connections stabilize.
    - Negative Veracity: Connections may reflect opposition, creating states akin to antimatter relationships.
    - Influence on Reality: Veracity influences not only information transfer but also the strength and durability of connections, shaping emergent laws and constants.
    - Any number of connections between any number of entities can exist, and each can have a different weight and veracity value.
 
-
-3. **Reinforcement of Laws**
+#### Reinforcement of Laws
    - Laws and constants are supported and reinforced by semantic and logical concepts that add to their significance or coherence within a chaotic system.
    - Yet constants adapt in ways that preserve coherence and the laws of thermodynamics and causality, with veracity dictating the persistence and influence of these principles.
 
-4. **Nihilism as a Computational Shortcut**
-Entities may in a sense only exist when they are interacting with other entities through trust rails.
-
-One form of "trust rail" you may not immediately expect is that of simple physical proximity within space-time.
-
-Entities close enough to interact gravitationally may form a "trust rail" that allows them to influence each other.
-
-With every physical and logical interaction being a trust rail, it's possible to simulate only regions of spacetime that are actually interacting in a significant way, and only coarsely simulate everything else.
-
-This "cosmic nihilism" principle says that the universe simply does not exist outside of observations that exist between entities, and that this nihilism is a massively useful optimisation that makes simulating the infinite universe a little more finite.
-
-In short:
-   - Minimum veracity is required for persistent existence
-   - Entities below threshold dissolve or become insignificant
-     - but may be rediscovered and rehydrated
-       or simply recalculated from a consistent seed state.
-   - Thresholds vary based on context and environment
-   - Higher veracity enables stronger influence on reality
-   - System self-regulates through threshold mechanics
-
-5. **Copy-on-Write Reality**
-In computer filesystems, copy-on-write mechanisms allow for multiple objects to exist from the same base data, with changes to the data being applied to a new copy of the data, and the original data being left unchanged.
-
-In this logical framework, we can propose that each entity within the universe is a copy-on-write system, with the fundamental base state of each being changeable at each divergence point in the timeline of the universe.
-
-We do not propose the universe as data itself, but that the principles of copy-on-write objects and divergent, snapshottable state can be applied to our reality.
-
-When a new entity is created, it is created by copying the base state of the universe that led to its creation, and then applying the necessary changes to the copy to create the new entity. This is stored as an addition to what is essentially a multi-dimensional, multi-timeline, directed acyclic graph of all possible states.
-
-When an entity ceases to exist, its copy is discarded, and the base state of the universe is left unchanged. However, to preserve entropy, the ceased entity still exists - it is simply no longer referenced anywhere. 
-
-The information is technically retained, but it is no longer part of the universe in any real sense. Paradoxically, however, a record of it exists in the interactions it had with other entities - and the universe thus could be said to "remember" the event and entity and its state.
-
-Copy-on-write principles act as a powerful optimisation technique: allowing the universe to exist in a state that is effectively infinite, while only requiring the storage of a relatively small amount of data to represent each entity. It prevents runaway requirements of information storage by allowing the universe to reference only what changes within each interaction, and to cross reference states between trees and intersections and timelines to avoid massive duplication of information and state.
-
-6. **Time Dilation as a Computational Relief Valve**
+### V. Time Dilation as a Computational Relief Valve
 Time dilation presents an interesting idea: that when a region of spacetime becomes computationally intensive, and is producing a large quantity of entropy, the universe will "stretch" time for that region, effectively slowing it down relative to other regions.
 
 This would have the effect of reducing the amount of entropy production in that region, and may also act as a form of computational "breathing room" for the universe, allowing it to avoid overheating and to continue to function.
 
 It also creates an effect where events that occur in a distant part of the universe may take a very long time to be fully realised or manifested in other parts of the universe, which may help to explain phenomena like black holes and the information paradox.
 
-7. **The Rainbow Table**
+### VI. The Rainbow Table
 The end state of any universe can be thought of as a giant rainbow table, with the heat death state representing every single piece of information and its complete history stretched across time and space and perfectly diffused into a meaningless soup of zero meaning - while at the same time forming a perfect lookup table of every single possible event and state in the history of the universe.
 
 One possibility for the state of our universe as it exists today is that we are simply seeing a snapshot of one section of the rainbow table, and that as we travel along the arrow of time we are simply interacting with trust rails in close proximity to our semantic view of the world.
 
 Another possibility is that we are simply experiencing our place in the timeline, and that as we move forward in time we are interacting with trust rails that are in close proximity to our current state. All states necessarily still exist at once, but are moved away from us by the time dimension and causality.
 
-8. **The Causal Universe**
+### VII. The Causal Universe
 As the universe iterates and processes itself, it may skip over many local minima that it deems to have low entropy, or have a high degree of disorder, and focus on iterating over sections that have a high degree of order and entropy.
 
 Causality can surprisingly be preserved in this model whether or not time travel is possible within it.
 
 Our perception may influence causality's direction - interestingly, in this model events such as time travel may be congruous with the laws of physics as long as the overall result is an increase in entropy and no information travels semantic boundaries. 
 
-9. **Paradoxical Resolution**
+### VIII. Paradoxical Resolution
 Paradoxes in this system are actually self-resolving - events only affect nodes when causal boundaries are crossed. Information about an event (like a star going supernova) only reaches nearby systems first, then propagates outward. There’s no need for distant parts of the universe to be immediately aware of the event.
 
 Multiple contradictory states remain coherent through veracity relationships. A "cosmic dissonance" is possible, where a system may be in a state of paradoxical contradiction, but still remain coherent through veracity relationships - existing in multiple states at once.
@@ -387,16 +423,27 @@ The system self-corrects through a process of "paradoxical resolution", where co
 
 Most paradoxically, universal truth both exists in this system and is logically impossible - as the truth is ever expanding until the final end state of the table is reached, and the truth is the sum of all states and interactions across all timelines. It can exist as the sum of all states and interactions across all timelines, but it can never be fully known or experienced in its entirety until the end state is reached, at which point it may only be observed by an external party or by the universe looping back upon itself.
 
-10. **The End State**
+### IX. The End State
 The end state of the universe is a state of perfect entropy, where all information is perfectly diffused and there is no more meaning to be had.
 
 In this end state, the universe is a perfectly efficient simulator of all past and future states, as it can be used to lookup and calculate the exact state of any entity or system at any point in time. Folding proofs and zero knowledge proofs can act as a form of compression, allowing for complicated physical processes to be maintained including all entropy and information within a smaller space than their events, while still being able to retrieve and decompress them from seemingly random states.
 
 This end state would be a perfect simulation of all past, present and future states, and even a small universe of this type simulated on even a classical computer would be a useful model for studying the universe the computer was in.
 
-## Part II: Computational Resource Management
-### 1. Universal Entropy Optimization
-Fundamentally, the universe optimizes for maximum entropy production.
+### X. Instantaneous State Transfer, Not Information Transfer
+State transfer can be instantaneous in this computational universe, but information transfer is not.
+
+This partially explains why the observer effect doesn't itself observe the speed of light or causality -
+it consists simply of states that already existed,
+information already in place at the points that are causally relevant, 
+and the observer effect is simply the observer evaluating the state into a coherent form.
+
+Collapse implies a change to the structure - as though it is creating new information or a new state -
+the reality is much, much spookier! Instead of a collapse, it's an *evaluation* of existing state,
+one which is too expensive to be maintained when not observed.
+
+## Branching Reality
+Fundamentally, by our arguments, the universe optimizes for maximum entropy production.
 
 Complex systems emerge as efficient entropy generators - stars creating fusion reactions, life creating order and complexity, civilisations creating technology and accelerating entropy production.
 
@@ -408,18 +455,41 @@ Within each major change, especially exponential ones, the universe will follow 
 
 This process of recursive search and copy-on-write branching is how the universe explores the entirety of the possible timelines and states, and is how it converges towards the end state of maximum entropy.
 
-### Remembering core principles
-From our core principles, we remember the following:
+### No universal truth
+In this branching reality, there **is no universal truth**.
 
-- Time dilation occurs when computational demands increase
-- A computational system stretches calculations across cosmic time scales
-- A cognitive engine or simulation with more possible states and entropy can represent more possible realities and can be said to be more powerful.
+Core foundational physics like the universal constants form the closest thing to universal truth,
+but even they are not universal - they are probabilistic, and subject to change as new information is discovered.
 
-### 2. Paradox Resolution
+This is akin to measuring a coastline with greater and greater precision,
+and the coastline becoming longer as more precise measurements are made.
+
+The probabilistic systems dial into the most entropic-producing states,
+and once they find combinations of physics and constants that produce more entropy,
+they will diverge and explore those timelines,
+and converge on the ones that produce the most entropy.
+Further events will reinforce existing entities, and the nature of veracity rails
+will reinforce the "correct" physics and constants, as well as making them more precise.
+
+### The Constants Revealed - The Paradox of Truth
 There is no universal truth within this system, 
 but there are fundamental principles that are functionally equivalent to true.
 
-Universal truth is eventually consistent and may exist for fleeting instants,
+Without universal truth, universal constants are probabilistic, but emerge with such
+resounding confirmation from the veracity rails connected to them that they can be said to be
+effectively the same across the universe.
+
+This system provides a natural explanation for the constancy of the constants of physics -
+they are simply the most efficient combinations of physics and constants for the realities we observe.
+
+It's possible there are other combinations of physics and constants that may produce greater entropy,
+but we have not yet found them, and they do not exist in our universe as far as we are aware.
+
+### Douglas Adams Was Right
+The universe is eventually consistent, allowing for the propagation of rails throughout the universe.
+
+Information travels at the speed of light (in whatever form it may take!) 
+and a "form" of universal truth may exist for fleeting instants,
 although changed as soon as it is observed or brought into existence by any interaction.
 
 By definition, it may never exist fully as its own existence must be recorded by itself,
@@ -431,21 +501,56 @@ In short,
 - Multiple contradictory states remain coherent through veracity relationships
 - System self-corrects through paradox integration
 - Truth emerges through veracity-weighted agreement
+- All possibilities exist and always existed.
 
-### 3. Multiple Reality Management
-Different realities coexist through varying veracity levels
+### Multiple Reality Management
+Different realities can coexist through varying veracity levels
 
 - Each perspective maintains internal consistency
+- Frames of reference can be completely different and even contradict each other
 - Contradictions resolve through veracity relationships
 - System adapts to maintain overall coherence
 - Reality branches and merges based on veracity strength
 
-### 4. Holographic Boundaries and Preservation
+### Holographic Boundaries and Preservation
 This system can be thought of as a holographic system, with all reality painted along a boundary that can be observed from any point. 
 
 Once the universe reaches its end state, it has spread all information across the boundary, and from any point in the universe all state can be reached and observed. 
 
 As no more information can be produced, all actions can now become instantaneous with no latency at all, and the speed of light no longer matters or even exists except in history in the computational ledger.
+
+## Exploring Existing Physics
+This theory becomes most interesting when treated as a meta-framework - or, there's no other way to say it, a Grand Unifying Theory Of Everything.
+
+### Quantum Entanglement
+Veracity rails may explain "spooky action at a distance"
+- entangled particles share high-veracity connections that allow state collapse to propagate instantly without transmitting actual information - the states were always linked through their veracity relationship.
+
+### Black Holes
+Black holes can be thought of as cosmic data compression systems - using extreme time dilation as a computational relief valve to process vast amounts of information over eons while preserving causality.
+
+#### Hawking Radiation
+Hawking radiation can be thought of as the output system for the singularity - having shredded the inputs into a form of pure information and emitting it as radiation.
+
+It doesn't technically destroy the information, but it makes it useless to any observer - with sufficient context, the information can be reconstructed, but it is otherwise irretrievable.
+
+There could be a "squeeze point", akin to squeezing a watermelon pip with more force until it shoots out from your fingers, where the computational intensity and time dilation reaches such extremes that further compression would be impossible, at which point the information escapes as Hawking radiation.
+
+### Wave-Particle Duality
+Particles can exist as a superposition of all their veracity-weighted states, with observation evaluating them into the "true" state along the strongest veracity gradient.
+
+Is the dual nature of particles an emergent property of veracity relationships? Particles may exist in superposition across multiple veracity-weighted states until observation collapses them along the strongest veracity gradients into either wave or particle behavior.
+
+### Quantum Tunneling
+Could tunneling represent computational shortcuts? When a particle encounters a barrier, the universe may find it more entropy-efficient to allow occasional tunneling through veracity-weighted probability spaces than to maintain strict classical boundaries.
+
+### The Arrow of Time
+Why does time flow in one direction? The framework suggests time's arrow emerges naturally from the universe's drive to maximize entropy - each moment collapses into the state that enables the greatest future entropy production while preserving causality through veracity relationships.
+
+
+## Compared to existing Grand Unifying Theories
+
+
 
 ## Part III: Operational Mechanisms
 
@@ -818,3 +923,26 @@ and to test the system's predictions.
    - Decoherence reflects veracity threshold limits
    - Randomness exists as veracity-neutral events
    - Quantum states collapse along veracity gradients
+
+
+### IV. The Cognitive Engine
+The Cognitive Engine is a system based on the principles of Defederation and the Cooperation Engine, using these principles combined with concepts from the Lis distributed filesystem to form a system that can create, store, and evolve ideas while breaking apart the semantic meaning of the words and concepts to form:
+
+a self-reinforcing, self-healing, constantly thinking, event-driven
+learning system that aligns concepts and ideas into a cohesive whole.
+
+It is a new model for AI language models, forming what we're describing as a "Cognition Network Language Model" or CNLM.
+
+### V. The Reality Layer
+The Cognitive Engine forms a powerful tool for understanding the world and theorising about the universe, but it forms a very interesting base layer for something bigger.
+
+From a simple base principle of an unfolding universe,
+we can actually start to model and simulate entire universes
+on modest hardware.
+
+We expect quantum computing to offer a massive speedup for this work,
+but we propose a number of novel (and hauntingly familiar) mechanisms
+for reducing the computational cost of creating an entire simulated
+reality with physical laws, properties and constants approaching our own -
+and we believe through this we can also answer questions
+about the anthropic principle and how the constants could have been selected.
