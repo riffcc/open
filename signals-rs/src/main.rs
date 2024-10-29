@@ -112,8 +112,12 @@ impl PropagationVisualizer {
     }
 
     fn get_node_style(&self, ring: usize, depth: usize) -> Option<(&'static str, ratatui::style::Color)> {
+        if ring > self.current_wave {
+            return None;
+        }
+
         if ring == self.current_wave {
-            // Rainbow wave front based on depth
+            // Active wave front - use rainbow colors
             Some(("◆", match depth % 6 {
                 0 => ratatui::style::Color::Rgb(255, 50, 50),   // Red
                 1 => ratatui::style::Color::Rgb(255, 200, 50),  // Orange
@@ -123,10 +127,8 @@ impl PropagationVisualizer {
                 _ => ratatui::style::Color::Rgb(255, 50, 255),  // Magenta
             }))
         } else {
-            // Trail effect - fade from bright to dark based on distance from wave
-            let distance = (self.current_wave as i64 - ring as i64).abs() as u8;
-            let pulse = (self.current_time * 5.0).sin() * 0.3 + 0.7; // 0.4 to 1.0 oscillation
-            let intensity = ((255.0 * pulse) - (distance as f64 * 10.0)).max(30.0) as u8;
+            // Already visited nodes - use depth-based coloring
+            let intensity = ((255.0 * 0.7) - (depth as f64 * 20.0)).max(30.0) as u8;
             Some(("·", ratatui::style::Color::Rgb(
                 intensity / 2,
                 intensity / 3,
@@ -146,7 +148,7 @@ impl PropagationVisualizer {
     }
 
     fn draw_structural_connection<'a>(&self, ctx: &mut canvas::Context<'a>, point: &HexPoint, zoom: f64) {
-        if point.ring > 0 {
+        if point.ring > 0 && point.ring <= self.current_wave {  // Only draw connections up to current wave
             let parent_ring = point.ring / 7;
             let parent_angle = (point.ring % 6) as f64 * std::f64::consts::PI / 3.0;
             let parent_x = (parent_ring as f64 * parent_angle.cos()) * zoom;
@@ -165,7 +167,7 @@ impl PropagationVisualizer {
                 _ => "━",
             };
             
-            // Color based on depth
+            // Color based on depth for better visibility
             let depth = (point.ring as f64).log(7.0).floor() as u8;
             let color = ratatui::style::Color::Rgb(
                 155 + depth * 20,
@@ -185,12 +187,13 @@ impl PropagationVisualizer {
 
     fn draw_stats(&self, f: &mut ratatui::Frame, area: Rect) {
         let stats = format!(
-            "Network Time: {:.2}ms | Nodes: {}/{} | Depth: {} | Latency: {:.2}ms",
+            "Network Time: {:.2}ms | Nodes: {}/{} | Depth: {} | Latency: {:.2}ms | Wave: {}",
             self.current_time,
             self.nodes_reached,
             self.total_nodes,
             (self.current_wave as f64).log(7.0).floor() as usize,
-            self.last_latency
+            self.last_latency,
+            self.current_wave
         );
 
         let stats_widget = Paragraph::new(stats)
@@ -240,44 +243,48 @@ impl Node {
     fn get_fractal_neighbors(&self, network: &GlobalHexNetwork) -> Vec<(Node, f64)> {
         let mut neighbors = Vec::new();
         let current_depth = network.calculate_depth(self.index);
+        
+        // Early exit if we're beyond max depth
+        if current_depth > network.max_depth {
+            return Vec::new();
+        }
+
         let cluster_size = 7_usize.pow(current_depth as u32);
         
-        // Local cluster connections (always available)
+        // Local cluster connections
         let cluster_start = (self.index / cluster_size) * cluster_size;
-        let cluster_end = cluster_start + cluster_size;
-        for i in 0..6 {
-            let neighbor_index = cluster_start + ((self.index - cluster_start + i + 1) % cluster_size);
-            if neighbor_index < network.node_count && neighbor_index < cluster_end {
+        for i in 1..=6 {
+            let neighbor_index = cluster_start + ((self.index - cluster_start + i) % cluster_size);
+            if neighbor_index < network.node_count {
                 neighbors.push((
                     Node::new(neighbor_index, self.time, current_depth),
-                    network.get_latency("local")
+                    0.1
                 ));
             }
         }
 
         // Parent connection (if not root)
-        if current_depth > 0 {
+        if self.index > 0 {
             let parent_index = self.index / 7;
             if parent_index < network.node_count {
                 neighbors.push((
-                    Node::new(parent_index, self.time, current_depth - 1),
-                    network.get_latency("regional")
+                    Node::new(parent_index, self.time, current_depth.saturating_sub(1)),
+                    1.0
                 ));
             }
         }
 
-        // Child connections (if space remains)
+        // Child connections (only if we won't exceed node count)
         let child_base = self.index * 7 + 1;
-        let next_cluster_size = 7_usize.pow((current_depth + 1) as u32);
-        let child_cluster_end = ((child_base / next_cluster_size) + 1) * next_cluster_size;
-        
-        for i in 0..6 {
-            let child_index = child_base + i;
-            if child_index < network.node_count && child_index < child_cluster_end {
-                neighbors.push((
-                    Node::new(child_index, self.time, current_depth + 1),
-                    network.get_latency("global")
-                ));
+        if child_base < network.node_count {
+            for i in 0..6 {
+                let child_index = child_base + i;
+                if child_index < network.node_count {
+                    neighbors.push((
+                        Node::new(child_index, self.time, current_depth + 1),
+                        10.0
+                    ));
+                }
             }
         }
 
@@ -344,26 +351,27 @@ impl Ord for NetworkEvent {
 impl GlobalHexNetwork {
     fn new(target_nodes: usize, fractal_mode: bool) -> Self {
         let (node_count, max_depth) = if fractal_mode {
-            // Calculate the largest complete fractal that fits
-            let complete_depth = (target_nodes as f64).log(7.0).floor() as usize;
-            let complete_size = (0..=complete_depth).map(|d| 7_usize.pow(d as u32)).sum();
+            // Calculate the depth needed for the target number of nodes
+            let mut total_nodes = 0;
+            let mut depth = 0;
             
-            // If we have remaining nodes, add a partial next level
-            let remaining = target_nodes.saturating_sub(complete_size);
-            let partial_depth = if remaining > 0 { complete_depth + 1 } else { complete_depth };
+            while total_nodes < target_nodes {
+                total_nodes += 7_usize.pow(depth as u32);
+                if total_nodes >= target_nodes {
+                    break;
+                }
+                depth += 1;
+            }
             
-            // Use all requested nodes up to the next fractal boundary
-            (target_nodes.min((0..=partial_depth).map(|d| 7_usize.pow(d as u32)).sum()), 
-             partial_depth)
+            (total_nodes.min(target_nodes), depth)
         } else {
             (target_nodes, 1)
         };
         
-        // Increased latencies to better show hierarchical effects
         let mut latencies = HashMap::new();
-        latencies.insert("local", 0.1);      // 100μs for same-cluster
-        latencies.insert("regional", 1.0);    // 1ms for parent/child
-        latencies.insert("global", 5.0);      // 5ms for cross-cluster
+        latencies.insert("local", 0.1);
+        latencies.insert("regional", 1.0);
+        latencies.insert("global", 5.0);
 
         Self {
             node_count,
@@ -504,18 +512,25 @@ impl GlobalHexNetwork {
 
     fn get_neighbors(&self, index: usize) -> Vec<(usize, &'static str)> {
         if self.fractal_mode {
-            // Convert from fractal neighbors format to standard format
+            // Early return if we're already at or past the node limit
+            if index >= self.node_count {
+                return Vec::new();
+            }
+
             let node = Node::new(index, 0.0, self.calculate_depth(index));
             node.get_fractal_neighbors(self)
                 .into_iter()
+                .filter(|(n, _)| n.index < self.node_count)  // Extra safety filter
                 .map(|(n, latency)| (n.index, self.get_connection_type(latency)))
                 .collect()
         } else {
-            // Original flat hex routing
+            // Original flat hex routing with node count limit
             let mut neighbors = Vec::new();
             for i in 1..=6 {
                 let neighbor_index = (index + i) % self.node_count;
-                neighbors.push((neighbor_index, "local"));
+                if neighbor_index < self.node_count {
+                    neighbors.push((neighbor_index, "local"));
+                }
             }
             neighbors
         }
@@ -592,70 +607,96 @@ struct VisualizationState {
     current_wave: usize,
     nodes_reached: usize,
     max_time: f64,
+    min_time: f64,
+    avg_time: f64,
     last_latency: f64,
 }
 
-fn run_with_visualization(network: GlobalHexNetwork, _realtime: bool) -> Result<(), io::Error> {
-    let (tx, rx) = channel::<VisualizationState>();
+// Add this new struct to handle sync events
+struct PropagationEvent {
+    state: VisualizationState,
+    is_complete: bool,
+}
+
+fn run_with_visualization(mut network: GlobalHexNetwork, _realtime: bool) -> Result<(), io::Error> {
+    let (mut tx, mut rx) = channel::<PropagationEvent>();
     let node_count = network.node_count;
     
-    thread::spawn(move || {
-        let mut visited = HashSet::new();
+    // Create a separate clone for the simulation thread
+    let network_sim = network.clone();
+    
+    // Spawn simulation thread
+    let mut simulation_thread = thread::spawn(move || {
+        let mut visited = HashSet::with_capacity(node_count);
         let mut event_queue = BinaryHeap::new();
+        let mut arrival_times = Vec::with_capacity(node_count);
         let mut last_viz_update = Instant::now();
         
         // Create and count origin node
         let origin = Node::new(0, 0.0, 0);
         visited.insert(origin.hash);
+        arrival_times.push(0.0);
         event_queue.push(NetworkEvent {
             node: origin,
             arrival_time: 0.0,
         });
 
-        // Initial visualization state
-        tx.send(VisualizationState {
-            current_wave: 0,
-            nodes_reached: 1,
-            max_time: 0.0,
-            last_latency: 0.0,
+        // Force initial visualization
+        tx.send(PropagationEvent {
+            state: VisualizationState {
+                current_wave: 0,
+                nodes_reached: 1,
+                max_time: 0.0,
+                min_time: 0.0,
+                avg_time: 0.0,
+                last_latency: 0.0,
+            },
+            is_complete: false,
         }).ok();
 
         while let Some(event) = event_queue.pop() {
-            // Stop if we've reached our node limit
             if visited.len() >= node_count {
                 break;
             }
 
-            // Process neighbors
-            for (neighbor_index, connection_type) in network.get_neighbors(event.node.index) {
-                // Skip if we've hit our node limit or the index is out of bounds
-                if neighbor_index >= node_count || visited.len() >= node_count {
+            for (neighbor_index, connection_type) in network_sim.get_neighbors(event.node.index) {
+                if neighbor_index >= node_count {
                     continue;
                 }
 
-                let latency = network.get_latency(connection_type);
+                let latency = network_sim.get_latency(connection_type);
                 let arrival_time = event.arrival_time + (latency / 1000.0);
                 
                 let neighbor_node = Node::new(
                     neighbor_index,
                     arrival_time,
-                    event.node.depth + 1
+                    event.node.depth + 1,
                 );
 
                 if !visited.contains(&neighbor_node.hash) {
                     visited.insert(neighbor_node.hash);
+                    arrival_times.push(arrival_time);
                     event_queue.push(NetworkEvent {
                         node: neighbor_node,
                         arrival_time,
                     });
 
-                    // Send update for each new node (more frequent updates)
-                    if last_viz_update.elapsed() > Duration::from_millis(16) {
-                        tx.send(VisualizationState {
-                            current_wave: neighbor_node.depth,
-                            nodes_reached: visited.len(),
-                            max_time: arrival_time * 1000.0,
-                            last_latency: latency,
+                    // Update visualization with progress
+                    if last_viz_update.elapsed() > Duration::from_millis(8) {
+                        let times: Vec<f64> = arrival_times.iter()
+                            .map(|&t| t * 1000.0)
+                            .collect();
+                        
+                        tx.send(PropagationEvent {
+                            state: VisualizationState {
+                                current_wave: neighbor_node.depth,
+                                nodes_reached: visited.len(),
+                                max_time: times.iter().fold(0.0_f64, |a: f64, &b| a.max(b)),
+                                min_time: times.iter().fold(f64::INFINITY, |a: f64, &b| a.min(b)),
+                                avg_time: times.iter().sum::<f64>() / times.len() as f64,
+                                last_latency: latency,
+                            },
+                            is_complete: false,
                         }).ok();
                         last_viz_update = Instant::now();
                     }
@@ -663,26 +704,50 @@ fn run_with_visualization(network: GlobalHexNetwork, _realtime: bool) -> Result<
             }
         }
 
-        // Send final state
-        tx.send(VisualizationState {
-            current_wave: event_queue.peek().map_or(0, |e| e.node.depth),
-            nodes_reached: visited.len(),
-            max_time: event_queue.peek().map_or(0.0, |e| e.arrival_time * 1000.0),
-            last_latency: 0.0,
+        // Send final state with completion flag
+        let times: Vec<f64> = arrival_times.iter()
+            .map(|&t| t * 1000.0)
+            .collect();
+        
+        tx.send(PropagationEvent {
+            state: VisualizationState {
+                current_wave: (visited.len() as f64).sqrt() as usize / 2,
+                nodes_reached: visited.len(),
+                max_time: times.iter().fold(0.0_f64, |a: f64, &b| a.max(b)),
+                min_time: times.iter().fold(f64::INFINITY, |a: f64, &b| a.min(b)),
+                avg_time: times.iter().sum::<f64>() / times.len() as f64,
+                last_latency: 0.0,
+            },
+            is_complete: true,
         }).ok();
     });
 
+    // Set up terminal
     let stdout = io::stdout();
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
-    let mut visualizer = PropagationVisualizer::new(10, node_count);  // Use saved node_count
 
-    terminal.clear()?;
+    // Enter alternate screen and hide cursor
+    crossterm::terminal::enable_raw_mode()?;
+    crossterm::execute!(
+        terminal.backend_mut(),
+        crossterm::terminal::EnterAlternateScreen,
+        crossterm::cursor::Hide,
+    )?;
 
-    loop {
-        // Non-blocking check for updates
-        if let Ok(state) = rx.try_recv() {
-            visualizer.update_state(state);
+    let mut visualizer = PropagationVisualizer::new(10, node_count);
+    let mut simulation_complete = false;
+    let mut paused = false;
+
+    // Main visualization loop
+    let result = loop {
+        if !paused {
+            if let Ok(event) = rx.try_recv() {
+                visualizer.update_state(event.state);
+                if event.is_complete {
+                    paused = true;
+                }
+            }
         }
 
         terminal.draw(|f| {
@@ -690,22 +755,151 @@ fn run_with_visualization(network: GlobalHexNetwork, _realtime: bool) -> Result<
                 .direction(Direction::Vertical)
                 .margin(1)
                 .constraints([
-                    Constraint::Percentage(100),
+                    Constraint::Percentage(95),
+                    Constraint::Percentage(5),
                 ])
                 .split(f.area());
 
             visualizer.draw(f, chunks[0]);
+
+            // Draw controls help
+            let help_text = if paused {
+                "Press [R] to restart, [Enter/Esc] or [Q] to exit, [Space] to continue"
+            } else {
+                "Press [Q] to quit, [Space] to pause"
+            };
+            let help = Paragraph::new(help_text)
+                .alignment(ratatui::layout::Alignment::Center);
+            f.render_widget(help, chunks[1]);
         })?;
 
         if event::poll(Duration::from_millis(16))? {
             if let Event::Key(key) = event::read()? {
-                if key.code == KeyCode::Char('q') {
-                    break;
+                match key.code {
+                    KeyCode::Char('q') if !paused => break Ok(()),
+                    KeyCode::Char('r') if paused => {
+                        // Restart simulation
+                        paused = false;
+                        visualizer = PropagationVisualizer::new(10, node_count);
+                        
+                        // Create new channel and spawn new simulation
+                        let (new_tx, new_rx) = channel();
+                        tx = new_tx;
+                        rx = new_rx;
+                        
+                        // Create new simulation thread with fresh network clone
+                        let network_sim = network.clone();
+                        simulation_thread = thread::spawn(move || {
+                            let mut visited = HashSet::with_capacity(node_count);
+                            let mut event_queue = BinaryHeap::new();
+                            let mut arrival_times = Vec::with_capacity(node_count);
+                            let mut last_viz_update = Instant::now();
+                            
+                            // Create and count origin node
+                            let origin = Node::new(0, 0.0, 0);
+                            visited.insert(origin.hash);
+                            arrival_times.push(0.0);
+                            event_queue.push(NetworkEvent {
+                                node: origin,
+                                arrival_time: 0.0,
+                            });
+
+                            // Force initial visualization
+                            tx.send(PropagationEvent {
+                                state: VisualizationState {
+                                    current_wave: 0,
+                                    nodes_reached: 1,
+                                    max_time: 0.0,
+                                    min_time: 0.0,
+                                    avg_time: 0.0,
+                                    last_latency: 0.0,
+                                },
+                                is_complete: false,
+                            }).ok();
+
+                            while let Some(event) = event_queue.pop() {
+                                if visited.len() >= node_count {
+                                    break;
+                                }
+
+                                for (neighbor_index, connection_type) in network_sim.get_neighbors(event.node.index) {
+                                    if neighbor_index >= node_count {
+                                        continue;
+                                    }
+
+                                    let latency = network_sim.get_latency(connection_type);
+                                    let arrival_time = event.arrival_time + (latency / 1000.0);
+                                    
+                                    let neighbor_node = Node::new(
+                                        neighbor_index,
+                                        arrival_time,
+                                        event.node.depth + 1,
+                                    );
+
+                                    if !visited.contains(&neighbor_node.hash) {
+                                        visited.insert(neighbor_node.hash);
+                                        arrival_times.push(arrival_time);
+                                        event_queue.push(NetworkEvent {
+                                            node: neighbor_node,
+                                            arrival_time,
+                                        });
+
+                                        // Update visualization with progress
+                                        if last_viz_update.elapsed() > Duration::from_millis(8) {
+                                            let times: Vec<f64> = arrival_times.iter()
+                                                .map(|&t| t * 1000.0)
+                                                .collect();
+                                            
+                                            tx.send(PropagationEvent {
+                                                state: VisualizationState {
+                                                    current_wave: neighbor_node.depth,
+                                                    nodes_reached: visited.len(),
+                                                    max_time: times.iter().fold(0.0_f64, |a: f64, &b| a.max(b)),
+                                                    min_time: times.iter().fold(f64::INFINITY, |a: f64, &b| a.min(b)),
+                                                    avg_time: times.iter().sum::<f64>() / times.len() as f64,
+                                                    last_latency: latency,
+                                                },
+                                                is_complete: false,
+                                            }).ok();
+                                            last_viz_update = Instant::now();
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Send final state with completion flag
+                            let times: Vec<f64> = arrival_times.iter()
+                                .map(|&t| t * 1000.0)
+                                .collect();
+                            
+                            tx.send(PropagationEvent {
+                                state: VisualizationState {
+                                    current_wave: (visited.len() as f64).sqrt() as usize / 2,
+                                    nodes_reached: visited.len(),
+                                    max_time: times.iter().fold(0.0_f64, |a: f64, &b| a.max(b)),
+                                    min_time: times.iter().fold(f64::INFINITY, |a: f64, &b| a.min(b)),
+                                    avg_time: times.iter().sum::<f64>() / times.len() as f64,
+                                    last_latency: 0.0,
+                                },
+                                is_complete: true,
+                            }).ok();
+                        });
+                    },
+                    KeyCode::Char(' ') => paused = !paused,
+                    KeyCode::Enter | KeyCode::Char('q') | KeyCode::Esc if paused => break Ok(()),
+                    _ => {}
                 }
             }
         }
-    }
+    };
 
-    terminal.clear()?;
-    Ok(())
+    // Cleanup: restore terminal state
+    crossterm::execute!(
+        terminal.backend_mut(),
+        crossterm::terminal::LeaveAlternateScreen,
+        crossterm::cursor::Show,
+    )?;
+    crossterm::terminal::disable_raw_mode()?;
+
+    result
 }
