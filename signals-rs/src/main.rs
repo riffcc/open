@@ -253,6 +253,34 @@ struct GlobalHexNetwork {
     fractal_mode: bool,
 }
 
+#[derive(Clone)]
+struct NetworkEvent {
+    node: Node,
+    arrival_time: f64,
+}
+
+impl PartialEq for NetworkEvent {
+    fn eq(&self, other: &Self) -> bool {
+        self.arrival_time == other.arrival_time
+    }
+}
+
+impl Eq for NetworkEvent {}
+
+impl PartialOrd for NetworkEvent {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        // Earlier times should be higher priority
+        other.arrival_time.partial_cmp(&self.arrival_time)
+    }
+}
+
+impl Ord for NetworkEvent {
+    fn cmp(&self, other: &Self) -> Ordering {
+        // Unwrap is safe because we're only comparing f64s
+        self.partial_cmp(other).unwrap_or(Ordering::Equal)
+    }
+}
+
 impl GlobalHexNetwork {
     fn new(target_nodes: usize, fractal_mode: bool) -> Self {
         let (node_count, max_depth) = if fractal_mode {
@@ -337,80 +365,74 @@ impl GlobalHexNetwork {
 
     fn propagate_realtime(&self, start_node: usize) -> Result<(), io::Error> {
         let mut visited = HashSet::new();
-        let mut heap = BinaryHeap::new();
+        let mut event_queue = BinaryHeap::new();
         let start_time = Instant::now();
-        heap.push(Node::new(start_node, 0.0, 0));
         
+        // Initial event at time 0
+        event_queue.push(NetworkEvent {
+            node: Node::new(start_node, 0.0, 0),
+            arrival_time: 0.0,
+        });
+
         let pb = ProgressBar::new(self.node_count as u64);
         pb.set_style(ProgressStyle::default_bar()
             .template("{spinner:.green} [{bar:40.cyan/blue}] {pos:>7}/{len:7} Nodes reached")
             .unwrap()
             .progress_chars("#>-"));
         
+        // Explicitly type our float variables
         let mut min_network_time: f64 = f64::MAX;
         let mut max_network_time: f64 = 0.0;
         let mut total_network_time: f64 = 0.0;
-        let threshold = self.node_count - (self.node_count / 1000);
-        let mut last_stretch_start: Option<Instant> = None;
+        let mut nodes_processed: usize = 0;
         
-        while let Some(node) = heap.pop() {
-            if visited.contains(&node.hash) {
+        while let Some(event) = event_queue.pop() {
+            if visited.contains(&event.node.hash) {
                 continue;
             }
-            
-            visited.insert(node.hash);
-            let nodes_reached = visited.len();
-            pb.set_position(nodes_reached as u64);
 
-            if nodes_reached == threshold {
-                last_stretch_start = Some(Instant::now());
+            // Track network times (in milliseconds)
+            min_network_time = min_network_time.min(event.arrival_time * 1000.0);
+            max_network_time = max_network_time.max(event.arrival_time * 1000.0);
+            total_network_time += event.arrival_time * 1000.0;
+            nodes_processed += 1;
+
+            // Only sleep until this event's time in realtime mode
+            let sleep_time = (event.arrival_time - start_time.elapsed().as_secs_f64()).max(0.0);
+            if sleep_time > 0.0 {
+                thread::sleep(Duration::from_secs_f64(sleep_time));
             }
 
-            // Get all neighbors and their latencies
-            let neighbors = self.get_neighbors(node.index);
-            
-            // Find the maximum latency for this batch of neighbors
-            let max_latency = neighbors.iter()
-                .map(|(_, conn_type)| self.get_latency(conn_type))
-                .max_by(|a, b| a.partial_cmp(b).unwrap())
-                .unwrap_or(0.0);
+            visited.insert(event.node.hash);
+            pb.set_position(visited.len() as u64);
 
-            // Sleep only once for the maximum latency in this batch
-            let sleep_micros = (max_latency * 1000.0) as u64;
-            thread::sleep(Duration::from_micros(sleep_micros));
-
-            // Process all neighbors
-            for (neighbor_index, connection_type) in neighbors {
+            // Schedule neighbor events
+            for (neighbor_index, connection_type) in self.get_neighbors(event.node.index) {
                 let latency = self.get_latency(connection_type);
-                let network_time = node.time + latency;
-                
-                min_network_time = min_network_time.min(network_time);
-                max_network_time = max_network_time.max(network_time);
-                total_network_time += network_time;
+                let arrival_time = event.arrival_time + (latency / 1000.0); // Convert ms to seconds
                 
                 let neighbor_node = Node::new(
                     neighbor_index,
-                    network_time,
-                    node.depth
+                    arrival_time,
+                    event.node.depth
                 );
-                
+
                 if !visited.contains(&neighbor_node.hash) {
-                    heap.push(neighbor_node);
+                    event_queue.push(NetworkEvent {
+                        node: neighbor_node,
+                        arrival_time,
+                    });
                 }
             }
         }
-        
+
         let real_elapsed = start_time.elapsed();
-        let avg_network_time = total_network_time / visited.len() as f64;
-        let final_stretch_time = last_stretch_start.map(|t| t.elapsed().as_secs_f64());
+        let avg_network_time = total_network_time / nodes_processed as f64;
         
         pb.finish_with_message(format!("Complete!"));
         println!("\nRealtime Simulation Complete:");
         println!("Nodes Reached: {}", visited.len());
         println!("Real Time: {:.2} seconds", real_elapsed.as_secs_f64());
-        if let Some(stretch_time) = final_stretch_time {
-            println!("Final 0.1% Time: {:.2} seconds", stretch_time);
-        }
         println!("\nNetwork Times:");
         println!("  Fastest: {:.2} ms", min_network_time);
         println!("  Slowest: {:.2} ms", max_network_time);
@@ -524,37 +546,51 @@ fn run_with_visualization(network: &GlobalHexNetwork, realtime: bool) -> Result<
     
     thread::spawn(move || {
         let mut visited = HashSet::new();
-        let mut heap = BinaryHeap::new();
-        heap.push(Node::new(0, 0.0, 0));
-        let mut current_ring = 0;
-        let mut current_time = 0.0;
+        let mut event_queue = BinaryHeap::new();
         
-        while let Some(node) = heap.pop() {
-            if visited.contains(&node.hash) {
+        // Initial event
+        event_queue.push(NetworkEvent {
+            node: Node::new(0, 0.0, 0),
+            arrival_time: 0.0,
+        });
+
+        while let Some(event) = event_queue.pop() {
+            if visited.contains(&event.node.hash) {
                 continue;
             }
-            
-            visited.insert(node.hash);
-            let ring = (visited.len() as f64).sqrt() as usize / 2;
-            
-            // Only sleep once per ring in realtime mode
-            if realtime && ring > current_ring {
-                thread::sleep(Duration::from_millis(5)); // Small fixed delay per ring
-                current_ring = ring;
+
+            // In realtime mode, sleep until this event's time
+            if realtime {
+                let sleep_time = (event.arrival_time - start_time.elapsed().as_secs_f64()).max(0.0);
+                if sleep_time > 0.0 {
+                    thread::sleep(Duration::from_secs_f64(sleep_time));
+                }
             }
 
-            for (neighbor_index, connection_type) in network_thread.get_neighbors(node.index) {
+            visited.insert(event.node.hash);
+            let ring = (visited.len() as f64).sqrt() as usize / 2;
+            
+            // Schedule all neighbor events
+            for (neighbor_index, connection_type) in network_thread.get_neighbors(event.node.index) {
                 let latency = network_thread.get_latency(connection_type);
-                current_time += latency;
+                let arrival_time = event.arrival_time + latency / 1000.0; // Convert ms to seconds
                 
-                let neighbor_node = Node::new(neighbor_index, current_time, node.depth);
+                let neighbor_node = Node::new(
+                    neighbor_index,
+                    arrival_time,
+                    event.node.depth
+                );
+
                 if !visited.contains(&neighbor_node.hash) {
-                    heap.push(neighbor_node);
+                    event_queue.push(NetworkEvent {
+                        node: neighbor_node,
+                        arrival_time,
+                    });
                     
                     tx.send(VisualizationState {
                         current_wave: ring,
                         nodes_reached: visited.len(),
-                        max_time: current_time,
+                        max_time: arrival_time * 1000.0, // Convert back to ms for display
                         last_latency: latency,
                     }).ok();
                 }
