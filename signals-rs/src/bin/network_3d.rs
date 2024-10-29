@@ -11,7 +11,6 @@ fn main() {
 
 #[derive(Component)]
 struct NetworkNode {
-    index: usize,
     depth: usize,
 }
 
@@ -50,7 +49,6 @@ fn setup(
             ..default()
         },
         NetworkNode {
-            index: 0,
             depth: 0,
         },
     ));
@@ -74,7 +72,6 @@ fn setup(
                 ..default()
             },
             NetworkNode {
-                index: i + 1,
                 depth: 1,
             },
         ));
@@ -96,7 +93,7 @@ fn rotate_camera(
 fn pulse_nodes(
     time: Res<Time>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    mut query: Query<(&NetworkNode, &Handle<StandardMaterial>)>,
+    query: Query<(&NetworkNode, &Handle<StandardMaterial>)>,
 ) {
     let pulse = (time.elapsed_seconds() * 2.0).sin() * 0.5 + 0.5;
     
