@@ -19,3 +19,4 @@ crossterm = "0.28"  # Adjust the version as needed
 rand = "0.8.5"
 indicatif = "0.17.8"
 bevy = "0.14.2"
+bitvec = "1.0.1"

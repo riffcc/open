@@ -1,66 +1,99 @@
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::Arc;
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
+use std::sync::Mutex;
+use std::collections::HashSet;
+use once_cell::sync::Lazy;
 
 // Simulation parameters
-const TARGET_NODES: u64 = 10_000_000; // Lower target for demonstration, adjust as needed
-const CONNECTIONS_PER_NODE: u64 = 3; // Each node connects to 3 others initially
-const HEX_CONNECTIONS: u64 = 6; // Each triangle node expands to 6 neighbors in hex routing
+const TARGET_NODES: u64 = 10_000; // Higher target to observe exponential growth
 const HEX_HOP_TIME_MS: u64 = 50; // Time per hop in milliseconds
+const LOG_INTERVAL_PERCENT: u64 = 1; // Log progress every 1% of target nodes
 
 // Global atomic counters
 static TOTAL_NODES: AtomicU64 = AtomicU64::new(1); // Start with the initial node
 static HOPS: AtomicU64 = AtomicU64::new(0); // Count of hops taken
 
-// Function to simulate packet traversal with latency
-fn traverse_packet(current_hop: u64, target_nodes: u64, total_nodes: Arc<AtomicU64>, hops: Arc<AtomicU64>) {
-    let mut local_nodes = 1; // Start with the initial node at this hop
-    let mut current_hop_count = current_hop;
+// Bitset for visited nodes
+static VISITED_NODES: Lazy<Mutex<HashSet<u64>>> = Lazy::new(|| Mutex::new(HashSet::new()));
 
-    while local_nodes < target_nodes {
-        thread::sleep(Duration::from_millis(HEX_HOP_TIME_MS)); // Simulate latency per hop
-        local_nodes *= CONNECTIONS_PER_NODE * HEX_CONNECTIONS; // Growth factor
+// Structure to represent a node's coordinates in axial (q, r) format
+#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq)]
+struct Node(i64, i64);
 
-        // Update total counters atomically
-        total_nodes.fetch_add(local_nodes, Ordering::SeqCst);
-        hops.fetch_add(1, Ordering::SeqCst);
+// Define axial direction vectors for a hexagonal grid
+const HEX_DIRECTIONS: [(i64, i64); 6] = [
+    (1, 0),   // Right
+    (0, 1),   // Top-right
+    (-1, 1),  // Top-left
+    (-1, 0),  // Left
+    (0, -1),  // Bottom-left
+    (1, -1),  // Bottom-right
+];
 
-        current_hop_count += 1;
+// Function to calculate neighbors in hexagonal paths using axial coordinates
+fn get_hex_neighbors(node: Node) -> Vec<Node> {
+    HEX_DIRECTIONS
+        .iter()
+        .map(|&(dq, dr)| Node(node.0 + dq, node.1 + dr))
+        .collect()
+}
 
-        // Print current progress
-        let total = total_nodes.load(Ordering::SeqCst);
-        let elapsed_time_seconds = (current_hop_count * HEX_HOP_TIME_MS) as f64 / 1000.0;
-        println!(
-            "Hop {}: Reached {} nodes, Time elapsed {:.2} seconds",
-            current_hop_count, total, elapsed_time_seconds
-        );
+// Simple hashing function for coordinates (q, r) to a unique index
+fn node_to_index(node: Node) -> u64 {
+    ((node.0 as u64) << 32) | (node.1 as u64)
+}
 
-        if total >= target_nodes {
-            break;
+// Stateless function to simulate firing packets to neighbors
+fn fire_packet(node: Node, target_nodes: u64) {
+    let node_index = node_to_index(node);
+
+    // Check if node has been visited, if so return immediately
+    {
+        let mut visited = VISITED_NODES.lock().unwrap();
+        if !visited.insert(node_index) {
+            return;
+        }
+    }
+
+    // Simulate latency for this specific node
+    thread::sleep(Duration::from_millis(HEX_HOP_TIME_MS));
+
+    // Fire packets to each of the hex neighbors
+    for neighbor in get_hex_neighbors(node) {
+        let node_count = TOTAL_NODES.fetch_add(1, Ordering::SeqCst) + 1;
+        let hop_count = HOPS.fetch_add(1, Ordering::SeqCst) + 1;
+
+        // Display a progress bar every LOG_INTERVAL_PERCENT% of TARGET_NODES
+        let progress_threshold = TARGET_NODES * LOG_INTERVAL_PERCENT / 100;
+        if node_count % progress_threshold == 0 {
+            let percentage = (node_count as f64 / target_nodes as f64) * 100.0;
+            println!(
+                "[{:.0}%] - Nodes: {}, Hops: {}, Elapsed Time: {:.2} sec",
+                percentage,
+                node_count,
+                hop_count,
+                (hop_count * HEX_HOP_TIME_MS) as f64 / 1000.0
+            );
+        }
+
+        // Spawn a new thread for each neighbor, allowing parallel processing
+        if node_count < target_nodes {
+            thread::spawn(move || fire_packet(neighbor, target_nodes));
         }
     }
 }
 
 fn main() {
-    let target_nodes = TARGET_NODES;
-    let total_nodes = Arc::new(AtomicU64::new(1));
-    let hops = Arc::new(AtomicU64::new(0));
+    // Start timing
+    let start = Instant::now();
 
-    // Start packet traversal simulation in a thread
-    let total_nodes_clone = Arc::clone(&total_nodes);
-    let hops_clone = Arc::clone(&hops);
-
-    let simulation_handle = thread::spawn(move || {
-        traverse_packet(1, target_nodes, total_nodes_clone, hops_clone);
-    });
-
-    // Wait for the simulation to complete
-    simulation_handle.join().unwrap();
+    // Start firing packets from the origin node
+    fire_packet(Node(0, 0), TARGET_NODES);
 
     // Final results
-    let total_hops = hops.load(Ordering::SeqCst);
-    let total_time_seconds = (total_hops * HEX_HOP_TIME_MS) as f64 / 1000.0;
+    let total_hops = HOPS.load(Ordering::SeqCst);
+    let elapsed = start.elapsed();
     println!("\nTotal hops taken: {}", total_hops);
-    println!("Total time in seconds: {:.2}", total_time_seconds);
+    println!("Total time elapsed: {:.2} seconds", elapsed.as_secs_f64());
 }
