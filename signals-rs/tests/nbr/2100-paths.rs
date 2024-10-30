@@ -1,39 +1,43 @@
 use signals_rs::nbr::{PathDiscovery, Route, PathMetrics};
 use signals_rs::hex::Position;
 use signals_rs::common::NodeId;
-use std::time::Duration;
+use std::time::{Duration, SystemTime};
 
 #[test]
-fn nbr_2100_optimize_hex_distance() {
+fn nbr_2100_path_distance_optimization() {
     let discovery = PathDiscovery::new(NodeId::generate());
     let target = NodeId::generate();
     
-    // Set up a network topology with multiple possible paths
-    let topology = vec![
-        // (node_id, position)
-        (NodeId::generate(), Position::new(1, -1, 0)),  // Path A
-        (NodeId::generate(), Position::new(1, 0, -1)),  // Path B
-        (NodeId::generate(), Position::new(2, -1, -1)), // Longer path
+    // Add nodes forming different possible paths
+    let long_path = vec![
+        Position::new(1, -1, 0),
+        Position::new(2, -1, -1),
+        Position::new(3, -2, -1)
     ];
     
-    for (id, pos) in &topology {
-        discovery.add_node(*id, pos.clone()).await?;
+    let short_path = vec![
+        Position::new(1, 0, -1),
+        Position::new(2, -1, -1)
+    ];
+    
+    // Add paths and verify distance-based selection
+    for pos in long_path {
+        let id = NodeId::generate();
+        discovery.add_node(id, pos).await?;
     }
     
-    // Find path to target
+    for pos in short_path {
+        let id = NodeId::generate();
+        discovery.add_node(id, pos).await?;
+    }
+    
     let path = discovery.find_path(target).await?;
-    
-    // Verify chosen path minimizes hex distance
-    let path_distance = discovery.calculate_path_distance(&path);
-    for node in topology.iter() {
-        let alt_path = discovery.calculate_path_through(node.0, target);
-        assert!(path_distance <= discovery.calculate_path_distance(&alt_path),
-            "Selected path should have minimal hex distance");
-    }
+    assert_eq!(path.nodes.len(), 2, 
+        "Should select shortest hex distance path");
 }
 
 #[test]
-fn nbr_2101_neighbor_disconnect_updates() {
+fn nbr_2101_handle_disconnections() {
     let discovery = PathDiscovery::new(NodeId::generate());
     let target = NodeId::generate();
     let intermediate = NodeId::generate();
@@ -45,7 +49,7 @@ fn nbr_2101_neighbor_disconnect_updates() {
     let initial_path = discovery.find_path(target).await?;
     assert!(initial_path.nodes.contains(&intermediate),
         "Initial path should use intermediate node");
-    
+        
     // Simulate intermediate node disconnection
     discovery.handle_node_disconnect(intermediate).await?;
     
@@ -121,5 +125,5 @@ fn nbr_2104_reject_invalid_paths() {
         metrics: PathMetrics::default(),
     }).await;
     
-    assert!(result.is_err(), "Should reject path with cycles");
-} 
+    assert!(result.is_err(), "Should reject path with cycle");
+}

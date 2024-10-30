@@ -48,15 +48,33 @@ fn hex_1002_maintain_constraints_on_modification() {
 
 #[test]
 fn hex_1003_serialization_preserves_validity() {
-    let original = Position::new(1, -1, 0);
-    assert!(original.is_valid());
-
-    // Serialize
-    let serialized = bincode::serialize(&original).expect("Serialization failed");
+    // Test cases covering edge cases and boundaries
+    let test_positions = vec![
+        Position::new(0, 0, 0),           // Origin
+        Position::new(1, -1, 0),          // Basic valid position
+        Position::new(i64::MAX/3, i64::MIN/3, -i64::MAX/3), // Large values
+        Position::new(-42, 21, 21),       // Negative coordinates
+    ];
     
-    // Deserialize
-    let deserialized: Position = bincode::deserialize(&serialized).expect("Deserialization failed");
-    
-    assert!(deserialized.is_valid(), "Deserialized position should be valid");
-    assert_eq!(original, deserialized, "Position should be preserved exactly");
-} 
+    for original in test_positions {
+        assert!(original.is_valid(), "Initial position must be valid");
+        
+        // Test JSON serialization
+        let json = serde_json::to_string(&original).expect("JSON serialization failed");
+        let from_json: Position = serde_json::from_str(&json).expect("JSON deserialization failed");
+        assert!(from_json.is_valid(), "JSON deserialized position should be valid");
+        assert_eq!(original, from_json, "JSON round-trip should preserve position exactly");
+        
+        // Test binary serialization
+        let binary = bincode::serialize(&original).expect("Binary serialization failed");
+        let from_binary: Position = bincode::deserialize(&binary).expect("Binary deserialization failed");
+        assert!(from_binary.is_valid(), "Binary deserialized position should be valid");
+        assert_eq!(original, from_binary, "Binary round-trip should preserve position exactly");
+        
+        // Test custom string format
+        let string = original.to_string();
+        let from_string = Position::from_str(&string).expect("String parsing failed");
+        assert!(from_string.is_valid(), "String parsed position should be valid");
+        assert_eq!(original, from_string, "String round-trip should preserve position exactly");
+    }
+}
