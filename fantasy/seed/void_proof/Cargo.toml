@@ -1,0 +1,10 @@
+[package]
+name = "void_proof"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+rand = "0.8"
+
+[dev-dependencies]
+test-case = "3.3"
