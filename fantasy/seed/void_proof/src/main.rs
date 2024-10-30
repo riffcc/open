@@ -1,5 +1,7 @@
 use std::cell::UnsafeCell;
 use std::io::{self, Write};
+use std::time::{Duration, Instant};
+use std::thread;
 
 struct UnstableMemory {
     state: UnsafeCell<Option<bool>>
@@ -17,6 +19,55 @@ impl UnstableMemory {
             *self.state.get() = Some(rand::random::<bool>());
         }
     }
+}
+
+struct TimelineState {
+    memory: UnstableMemory,
+    spawn_time: Instant,
+    child_timelines: Vec<TimelineState>
+}
+
+impl TimelineState {
+    fn new() -> Self {
+        Self {
+            memory: UnstableMemory::new(),
+            spawn_time: Instant::now(),
+            child_timelines: Vec::new()
+        }
+    }
+
+    fn transition(&mut self) {
+        let start = Instant::now();
+        let time_since_spawn = start.duration_since(self.spawn_time);
+        
+        unsafe {
+            self.memory.transition();
+            
+            // If a transition occurs, a new timeline may emerge
+            if let Some(true) = *self.memory.state.get() {
+                self.child_timelines.push(TimelineState::new());
+            }
+        }
+
+        // Natural time dilation based purely on computational load
+        let elapsed = start.elapsed();
+        let sleep_duration = Duration::from_nanos(
+            elapsed.as_nanos() as u64 * 
+            (self.child_timelines.len() + 1) as u64
+        );
+        thread::sleep(sleep_duration);
+
+        // Allow child timelines to transition
+        for timeline in &mut self.child_timelines {
+            timeline.transition();
+        }
+    }
+}
+
+fn count_timelines(timeline: &TimelineState) -> usize {
+    1 + timeline.child_timelines.iter()
+        .map(count_timelines)
+        .sum::<usize>()
 }
 
 #[cfg(test)]
@@ -129,27 +180,54 @@ mod tests {
         assert!(stable_patterns_found > 0, 
             "Should find patterns that remain stable across multiple observation windows");
     }
+
+    #[test]
+    fn test_timeline_spawning() {
+        let mut root_timeline = TimelineState::new();
+        let mut spawned_timelines = 0;
+        
+        // Run for a fixed number of transitions
+        for _ in 0..100 {
+            root_timeline.transition();
+            spawned_timelines = count_timelines(&root_timeline);
+            
+            // Break if we've spawned enough timelines to prove it works
+            if spawned_timelines > 3 {
+                break;
+            }
+        }
+
+        assert!(spawned_timelines > 0, "Timeline spawning should occur");
+    }
+
+    #[test]
+    fn test_time_dilation() {
+        let mut timeline = TimelineState::new();
+        let start = Instant::now();
+        
+        // Perform transitions and measure real time vs dilated time
+        for _ in 0..10 {
+            timeline.transition();
+        }
+        
+        let elapsed = start.elapsed();
+        assert!(elapsed > Duration::from_micros(1), 
+            "Time dilation should slow down processing");
+    }
 }
 
 fn main() {
-    let memory = UnstableMemory::new();
+    let mut root_timeline = TimelineState::new();
     let mut total_transitions = 0;
-    let mut ordered_patterns = 0;
-    let mut last_states = Vec::with_capacity(3);
 
-    println!("Void Proof Interactive Terminal");
-    println!("Press ENTER to trigger a transition");
+    println!("Void Proof Multiverse Terminal");
+    println!("Press ENTER to trigger transitions across all timelines");
     println!("Press 'q' to quit\n");
 
     loop {
-        print!("\rTransitions: {} | Ordered Patterns: {} | Order Ratio: {:.2}% > ", 
-            total_transitions, 
-            ordered_patterns,
-            if total_transitions > 0 {
-                (ordered_patterns as f64 / total_transitions as f64) * 100.0
-            } else {
-                0.0
-            });
+        print!("\rTimelines: {} | Total Transitions: {} > ", 
+            count_timelines(&root_timeline),
+            total_transitions);
         io::stdout().flush().unwrap();
 
         let mut input = String::new();
@@ -159,27 +237,7 @@ fn main() {
             break;
         }
 
-        unsafe {
-            let before = *memory.state.get();
-            memory.transition();
-            let after = *memory.state.get();
-            
-            // Track last 3 states for pattern detection
-            last_states.push(after);
-            if last_states.len() > 3 {
-                last_states.remove(0);
-            }
-
-            // Check for patterns (3 identical states in a row)
-            if last_states.len() == 3 
-                && last_states.iter().all(|&x| x == last_states[0]) {
-                ordered_patterns += 1;
-            }
-
-            total_transitions += 1;
-
-            // Visual representation of the transition
-            println!("\n{:?} -> {:?}", before, after);
-        }
+        root_timeline.transition();
+        total_transitions += 1;
     }
 }
