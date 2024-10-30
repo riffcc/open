@@ -2,6 +2,57 @@ use std::cell::UnsafeCell;
 use std::io::{self, Write};
 use std::time::{Duration, Instant};
 use std::thread;
+use crossterm::{
+    event::{self, Event, KeyCode, KeyEvent},
+    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+    ExecutableCommand,
+};
+use ratatui::{
+    prelude::*,
+    widgets::{Axis, Block, Borders, Chart, Dataset, GraphType, Paragraph},
+    Terminal, Frame, backend::CrosstermBackend,
+};
+
+struct TimelineMetrics {
+    timeline_counts: Vec<(f64, f64)>,  // (transition_number, count)
+    order_ratio: f64,
+    total_entropy: u64,
+    runs_completed: u32,
+}
+
+impl TimelineMetrics {
+    fn new() -> Self {
+        Self {
+            timeline_counts: Vec::new(),
+            order_ratio: 0.0,
+            total_entropy: 0,
+            runs_completed: 0,
+        }
+    }
+
+    fn record_transition(&mut self, transition: u32, timeline_count: usize) {
+        self.timeline_counts.push((transition as f64, timeline_count as f64));
+        
+        // Calculate entropy as log2 of timeline count
+        if timeline_count > 1 {
+            self.total_entropy += (timeline_count as f64).log2() as u64;
+        }
+        
+        // Update order ratio based on pattern detection
+        if self.timeline_counts.len() >= 2 {
+            let last_two = &self.timeline_counts[self.timeline_counts.len()-2..];
+            if last_two[0].1 < last_two[1].1 {
+                self.order_ratio = (self.order_ratio * (self.runs_completed as f64) + 1.0) / 
+                    ((self.runs_completed + 1) as f64);
+            }
+        }
+    }
+
+    fn clear_run(&mut self) {
+        self.timeline_counts.clear();
+        self.runs_completed += 1;
+    }
+}
 
 struct UnstableMemory {
     state: UnsafeCell<Option<bool>>
@@ -216,28 +267,106 @@ mod tests {
     }
 }
 
-fn main() {
+fn run_simulation(metrics: &mut TimelineMetrics) {
     let mut root_timeline = TimelineState::new();
-    let mut total_transitions = 0;
+    metrics.timeline_counts.clear();
+    
+    for i in 0..25 {
+        root_timeline.transition();
+        let count = count_timelines(&root_timeline);
+        metrics.record_transition(i, count);
+    }
+    
+    metrics.clear_run();
+}
 
-    println!("Void Proof Multiverse Terminal");
-    println!("Press ENTER to trigger transitions across all timelines");
-    println!("Press 'q' to quit\n");
+fn ui(f: &mut Frame<CrosstermBackend<io::Stdout>>, metrics: &TimelineMetrics) {
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Percentage(70),
+            Constraint::Percentage(30),
+        ])
+        .split(f.size());
+
+    // Create the timeline growth chart
+    let dataset = Dataset::default()
+        .name("Timeline Growth")
+        .marker(symbols::Marker::Dot)
+        .graph_type(GraphType::Line)
+        .data(&metrics.timeline_counts);
+
+    let max_y = metrics.timeline_counts.iter()
+        .map(|(_, y)| *y)
+        .fold(0.0, f64::max)
+        .max(1.0);
+
+    let chart = Chart::new(vec![dataset])
+        .block(Block::default().title("Timeline Growth").borders(Borders::ALL))
+        .x_axis(Axis::default().title("Transitions").bounds([0.0, 25.0]))
+        .y_axis(Axis::default().title("Timeline Count").bounds([0.0, max_y]));
+
+    f.render_widget(chart, chunks[0]);
+
+    // Metrics panel (continuing from previous ui function)
+    let metrics_text = vec![
+        Line::from(vec![
+            Span::raw("Runs Completed: "),
+            Span::styled(
+                metrics.runs_completed.to_string(),
+                Style::default().fg(Color::Green)
+            )
+        ]),
+        Line::from(vec![
+            Span::raw("Order Ratio: "),
+            Span::styled(
+                format!("{:.2}%", metrics.order_ratio * 100.0),
+                Style::default().fg(Color::Yellow)
+            )
+        ]),
+        Line::from(vec![
+            Span::raw("Total Entropy: "),
+            Span::styled(
+                metrics.total_entropy.to_string(),
+                Style::default().fg(Color::Magenta)
+            )
+        ]),
+        Line::from(""),
+        Line::from("Press SPACE to run simulation"),
+        Line::from("Press 'q' to quit"),
+    ];
+
+    let metrics_paragraph = Paragraph::new(metrics_text)
+        .block(Block::default().title("Metrics").borders(Borders::ALL))
+        .alignment(Alignment::Left);
+
+    f.render_widget(metrics_paragraph, chunks[1]);
+}
+
+fn main() -> io::Result<()> {
+    // Terminal initialization
+    enable_raw_mode()?;
+    io::stdout().execute(EnterAlternateScreen)?;
+    let mut terminal = Terminal::new(CrosstermBackend::new(io::stdout()))?;
+
+    let mut metrics = TimelineMetrics::new();
 
     loop {
-        print!("\rTimelines: {} | Total Transitions: {} > ", 
-            count_timelines(&root_timeline),
-            total_transitions);
-        io::stdout().flush().unwrap();
+        terminal.draw(|f| ui(f, &metrics))?;
 
-        let mut input = String::new();
-        io::stdin().read_line(&mut input).unwrap();
-
-        if input.trim() == "q" {
-            break;
+        if event::poll(Duration::from_millis(100))? {
+            if let Event::Key(key) = event::read()? {
+                match key.code {
+                    KeyCode::Char('q') => break,
+                    KeyCode::Char(' ') => run_simulation(&mut metrics),
+                    _ => {}
+                }
+            }
         }
-
-        root_timeline.transition();
-        total_transitions += 1;
     }
+
+    // Cleanup
+    disable_raw_mode()?;
+    io::stdout().execute(LeaveAlternateScreen)?;
+    Ok(())
 }
