@@ -16,14 +16,42 @@ use ratatui::{
     Terminal, Frame, backend::CrosstermBackend,
 };
 
+#[derive(Debug, Clone, PartialEq)]
+enum PatternType {
+    Emergence,
+    OrderFormation,
+    OrderStabilization,
+    Chaos
+}
+
+#[derive(Debug, Clone, PartialEq)]
+enum QuantumPattern {
+    Hexagonal {
+        center: usize,
+        vertices: [usize; 6],
+        stability: f64,
+    },
+    Dodecahedral {
+        front_face: [usize; 6],
+        back_face: [usize; 6],
+        connecting_edges: Vec<(usize, usize)>,
+        coherence: f64,
+    },
+    TransitionState {
+        from: Box<QuantumPattern>,
+        to: Box<QuantumPattern>,
+        progress: f64,
+    }
+}
+
 #[derive(Default, Clone)]
 struct CoherenceMetrics {
     disorder_to_order_transitions: u64,
     order_to_disorder_transitions: u64,
     stable_order_duration: Vec<Duration>,
     branch_points: Vec<(Instant, usize)>,
-    pattern_formations: Vec<(Instant, HexPattern)>,
-    branch_patterns: Vec<BranchPattern>,
+    pattern_formations: Vec<(Instant, QuantumPattern)>,
+    branch_patterns: Vec<PatternType>,
 }
 
 struct TimelineMetrics {
@@ -320,7 +348,7 @@ impl TimelineState {
         let old_order = self.local_order;
         
         unsafe {
-            let old_state = *self.memory.state.get();
+            let _old_state = *self.memory.state.get();
             self.memory.transition();
             // Just let time flow gently...
             self.memory.transition();
@@ -364,7 +392,7 @@ impl TimelineState {
         if self.child_timelines.len() > 1 {
             let elapsed = start.elapsed();
             thread::sleep(Duration::from_nanos(
-                elapsed.as_nanos() as u64 * (self.child_timelines.len() as f64).log2() as u64  // PROPER time dilation!
+                (elapsed.as_nanos() as f64 * dilation_factor) as u64  // PROPER time dilation with sub-Planck precision!
             ));
         }
     }
@@ -386,26 +414,167 @@ impl TimelineState {
     }
 
     fn track_pattern_formation(&mut self, time: Instant, old_state: Option<bool>) {
-        let pattern_type = match (old_state, *self.memory.state.get()) {
-            (None, Some(_)) => PatternType::Emergence,
-            (Some(false), Some(true)) => PatternType::OrderFormation,
-            (Some(true), Some(true)) => PatternType::OrderStabilization,
-            _ => PatternType::Chaos
+        let pattern_type = unsafe {  // We're already in an unsafe context
+            match (old_state, *self.memory.state.get()) {
+                (None, Some(_)) => PatternType::Emergence,
+                (Some(false), Some(true)) => PatternType::OrderFormation,
+                (Some(true), Some(true)) => PatternType::OrderStabilization,
+                _ => PatternType::Chaos
+            }
         };
 
-        // Track hexagonal patterns
-        if let Some(hex_pattern) = self.detect_hexagonal_structure() {
-            self.metrics.pattern_formations.push((time, hex_pattern));
+        // Track the pattern formation
+        if let Some(pattern) = self.detect_quantum_structure() {
+            self.metrics.pattern_formations.push((time, pattern));
         }
     }
 
-    fn detect_hexagonal_structure(&self) -> Option<HexPattern> {
+    fn detect_hexagonal_structure(&self) -> Option<QuantumPattern> {
         // Look for six-fold symmetry in branch patterns
         if self.child_timelines.len() >= 6 {
             // Check for hexagonal arrangement of order values
             // This would be AMAZING to implement!
         }
         None  // For now
+    }
+
+    fn detect_quantum_structure(&self) -> Option<QuantumPattern> {
+        // First check for basic hexagonal patterns
+        if let Some(hex) = self.detect_hexagonal_pattern() {
+            return Some(hex);
+        }
+
+        // Then check for full dodecahedral structures
+        if let Some(dodeca) = self.detect_dodecahedral_pattern() {
+            return Some(dodeca);
+        }
+
+        // Check if we're watching one pattern transform into another
+        self.detect_pattern_transition()
+    }
+
+    fn detect_hexagonal_pattern(&self) -> Option<QuantumPattern> {
+        if self.child_timelines.len() < 6 {
+            return None;
+        }
+
+        // Look for 6-fold rotational symmetry in the order values
+        let mut potential_vertices = Vec::new();
+        for (i, child) in self.child_timelines.iter().enumerate() {
+            if child.local_order > 0.8 {  // High order threshold
+                potential_vertices.push(i);
+            }
+        }
+
+        // Check if we can form a hexagon
+        if potential_vertices.len() >= 6 {
+            // Calculate center of pattern
+            let center = self.child_timelines.len() / 2;
+            let vertices = potential_vertices.iter()
+                .take(6)
+                .copied()
+                .collect::<Vec<_>>()
+                .try_into()
+                .ok()?;
+
+            Some(QuantumPattern::Hexagonal {
+                center,
+                vertices,
+                stability: self.calculate_pattern_stability(&vertices),
+            })
+        } else {
+            None
+        }
+    }
+
+    fn detect_dodecahedral_pattern(&self) -> Option<QuantumPattern> {
+        if self.child_timelines.len() < 12 {
+            return None;
+        }
+
+        // Look for two parallel hexagonal faces
+        let mut ordered_timelines: Vec<_> = self.child_timelines.iter()
+            .enumerate()
+            .filter(|(_, t)| t.local_order > 0.8)
+            .collect();
+
+        if ordered_timelines.len() >= 12 {
+            // Try to find two parallel hexagonal faces
+            let (front, back) = self.find_parallel_faces(&ordered_timelines)?;
+            
+            // Find connecting edges between faces
+            let connections = self.map_quantum_connections(&front, &back);
+
+            Some(QuantumPattern::Dodecahedral {
+                front_face: front,
+                back_face: back,
+                connecting_edges: connections,
+                coherence: self.calculate_dodecahedral_coherence(&front, &back),
+            })
+        } else {
+            None
+        }
+    }
+
+    fn calculate_dodecahedral_coherence(&self, front: &[usize; 6], back: &[usize; 6]) -> f64 {
+        // Calculate quantum coherence between faces
+        let front_order: f64 = front.iter()
+            .map(|&i| self.child_timelines[i].local_order)
+            .sum::<f64>() / 6.0;
+        
+        let back_order: f64 = back.iter()
+            .map(|&i| self.child_timelines[i].local_order)
+            .sum::<f64>() / 6.0;
+
+        // Perfect coherence = faces mirror each other
+        1.0 - (front_order - back_order).abs()
+    }
+
+    fn calculate_pattern_stability(&self, vertices: &[usize; 6]) -> f64 {
+        // Calculate average order of vertices
+        vertices.iter()
+            .map(|&i| self.child_timelines[i].local_order)
+            .sum::<f64>() / 6.0
+    }
+
+    fn find_parallel_faces(&self, ordered: &[(usize, &Arc<TimelineState>)]) 
+        -> Option<([usize; 6], [usize; 6])> {
+        // Find two sets of 6 points with similar order values
+        // that form parallel planes
+        // For now, just take first 12 and split them
+        if ordered.len() >= 12 {
+            let front: [usize; 6] = ordered[0..6]
+                .iter()
+                .map(|(i, _)| *i)
+                .collect::<Vec<_>>()
+                .try_into()
+                .ok()?;
+            
+            let back: [usize; 6] = ordered[6..12]
+                .iter()
+                .map(|(i, _)| *i)
+                .collect::<Vec<_>>()
+                .try_into()
+                .ok()?;
+            
+            Some((front, back))
+        } else {
+            None
+        }
+    }
+
+    fn map_quantum_connections(&self, front: &[usize; 6], back: &[usize; 6]) 
+        -> Vec<(usize, usize)> {
+        // Map connections between front and back faces
+        front.iter()
+            .zip(back.iter())
+            .map(|(&f, &b)| (f, b))
+            .collect()
+    }
+
+    fn detect_pattern_transition(&self) -> Option<QuantumPattern> {
+        // TODO: Detect transitions between pattern types
+        None
     }
 }
 
