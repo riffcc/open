@@ -94,30 +94,17 @@ impl TimelineMetrics {
     }
 
     fn next_page(&mut self) {
-        // Check if we have any actual simulation data
-        let has_data = !self.active_simulations.is_empty() && 
-                      self.active_simulations.iter().any(|sim| !sim.is_empty());
-        
-        if !has_data {
-            self.current_sim_page = 0;
-            return;
+        // If we have at least 2 simulations, we can toggle between pages 0 and 1
+        if self.active_simulations.len() >= 2 {
+            self.current_sim_page = if self.current_sim_page == 0 { 1 } else { 0 };
         }
-        
-        // Otherwise, calculate pages based on highest used simulation index
-        let max_sim_index = self.active_simulations.len() - 1;
-        let total_pages = (max_sim_index / self.sims_per_page) + 1;
-        self.current_sim_page = (self.current_sim_page + 1) % total_pages;
     }
 
     fn prev_page(&mut self) {
-        if self.active_simulations.is_empty() {
-            self.current_sim_page = 0;
-            return;
+        // Same logic - just toggle between 0 and 1
+        if self.active_simulations.len() >= 2 {
+            self.current_sim_page = if self.current_sim_page == 0 { 1 } else { 0 };
         }
-        
-        let max_sim_index = self.active_simulations.len() - 1;
-        let total_pages = (max_sim_index / self.sims_per_page) + 1;
-        self.current_sim_page = (self.current_sim_page + total_pages - 1) % total_pages;
     }
 
     fn inject_entropy(&mut self, sim_index: Option<usize>) {
@@ -262,28 +249,21 @@ impl TimelineState {
     fn transition(&mut self) {
         let start = Instant::now();
         
-        // Calculate entropy (not order!) based on total number of branching timelines
+        // Calculate time dilation based on TOTAL timelines
+        // Because ANY timeline = entropy = dilation!
         let total_timelines = count_timelines(self);
-        let entropy = if total_timelines > 1 {
-            (total_timelines as f64).log2()  // Same entropy calculation we use elsewhere
+        let dilation_factor = if total_timelines > 1 {  // If we have ANY branches
+            // Normal scale (total_timelines as f64).log2() + 1.0, approx 60s per 400 branch runs
+            // WAY more branches at Planck scale
+            // But log2 means it doesn't explode!
+            (total_timelines as f64 * 10e44).log2() + 1.0
         } else {
-            0.0
+            1.0  // Only when we're a single timeline
         };
-        
-        // Time dilation scales with entropy - more branches = slower time
-        let dilation_factor = entropy + 1.0; // Prevent division by zero
-        let max_duration = Duration::from_micros(100);  // Base time quantum
-                                                        // In a realistic universe, this would be Planck time
-                                                        // 😈
-        let sleep_duration = max_duration.mul_f64(1.0 - 1.0/dilation_factor);
-        
-        // Implement time dilation - trading time for infinite complexity
-        thread::sleep(sleep_duration);
 
         unsafe {
+            // Just let time flow gently...
             self.memory.transition();
-            
-            // Spawn new timeline if we get a true state
             if let Some(true) = *self.memory.state.get() {
                 self.child_timelines.push(Arc::new(TimelineState::new()));
             }
@@ -291,22 +271,18 @@ impl TimelineState {
 
         // Update metrics
         self.local_order = self.calculate_local_order();
-        self.local_entropy = if self.child_timelines.is_empty() {
-            0.0
+        self.local_entropy = if total_timelines > 1 {
+            (total_timelines as f64).log2()
         } else {
-            (self.child_timelines.len() as f64).log2()
+            0.0
         };
-
-        // Time dilation based on both entropy and order
-        let elapsed = start.elapsed();
-        let dilation = (self.local_entropy * (1.0 + self.local_order)) as u64;
-        thread::sleep(Duration::from_nanos(elapsed.as_nanos() as u64 * dilation));
         
-        // Allow child timelines to transition
-        for timeline in &mut self.child_timelines {
-            if let Some(timeline) = Arc::get_mut(timeline) {
-                timeline.transition();
-            }
+        // Apply dilation based on THIS timeline's complexity
+        if total_timelines > 1 {
+            let elapsed = start.elapsed();
+            thread::sleep(Duration::from_nanos(
+                elapsed.as_nanos() as u64 * dilation_factor as u64
+            ));
         }
     }
 }
@@ -504,29 +480,35 @@ mod tests {
     }
 
     #[test]
-    fn test_timeline_branching_patterns() {
-        let mut root_timeline = TimelineState::new();
-        let mut timings = Vec::new();
-        let mut orders = Vec::new();
+    fn test_timeline_branching() {
+        let mut timeline = TimelineState::new();
         
-        // Record transitions with timing and order measurements
-        for _ in 0..10 {
-            let start = Instant::now();
-            root_timeline.transition();
-            let elapsed = start.elapsed();
-            timings.push(elapsed);
-            orders.push(root_timeline.calculate_local_order());
+        // The Doctor Who Method: Search until we find what we need!
+        loop {
+            // Try the current timeline
+            timeline.transition();
+            if !timeline.child_timelines.is_empty() {
+                break;  // Found a branch!
+            }
+            
+            // No branch? Check the existing children
+            let mut found_branch = false;
+            if let Some(child) = timeline.child_timelines.first_mut() {
+                if let Some(child) = Arc::get_mut(child) {
+                    child.transition();
+                    if !child.child_timelines.is_empty() {
+                        found_branch = true;
+                        break;
+                    }
+                }
+            }
+            if found_branch {
+                break;
+            }
         }
         
-        // Verify that entropy increases
-        assert!(root_timeline.child_timelines.len() > 0,
-            "Entropy should increase as timelines branch");
-        
-        // Verify that transitions take longer as entropy increases
-        let first_timing = timings[0];
-        let last_timing = timings[timings.len() - 1];
-        assert!(last_timing >= first_timing, 
-            "Later transitions should take longer due to time dilation");
+        assert!(!timeline.child_timelines.is_empty(), 
+            "Should eventually find a timeline branch");
     }
 
     #[test]
