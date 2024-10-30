@@ -47,4 +47,40 @@ mod tests {
             "Void should eventually transition to boolean state. Observed {} transitions without occurrence", 
             transitions_observed);
     }
+
+    #[test]
+    fn test_transitions_form_patterns() {
+        let memory = UnstableMemory::new();
+        let mut state_sequence = Vec::new();
+        
+        // Record a sequence of 1000 transitions
+        for _ in 0..1000 {
+            unsafe {
+                memory.transition();
+                state_sequence.push(*memory.state.get());
+            }
+        }
+
+        // Look for repeating patterns in the sequence
+        let mut pattern_found = false;
+        for window_size in 2..=10 {
+            for window in state_sequence.windows(window_size) {
+                // Count how many times this exact sequence appears
+                let pattern_count = state_sequence
+                    .windows(window_size)
+                    .filter(|w| w == &window)
+                    .count();
+                
+                if pattern_count > 1 {
+                    pattern_found = true;
+                    break;
+                }
+            }
+            if pattern_found {
+                break;
+            }
+        }
+
+        assert!(pattern_found, "Transitions should naturally form patterns");
+    }
 }
