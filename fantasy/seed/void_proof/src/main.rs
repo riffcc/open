@@ -16,6 +16,16 @@ use ratatui::{
     Terminal, Frame, backend::CrosstermBackend,
 };
 
+#[derive(Default, Clone)]
+struct CoherenceMetrics {
+    disorder_to_order_transitions: u64,
+    order_to_disorder_transitions: u64,
+    stable_order_duration: Vec<Duration>,
+    branch_points: Vec<(Instant, usize)>,
+    pattern_formations: Vec<(Instant, HexPattern)>,
+    branch_patterns: Vec<BranchPattern>,
+}
+
 struct TimelineMetrics {
     selected_simulation: Option<usize>,
     timeline_counts: Vec<(f64, f64)>,
@@ -28,6 +38,9 @@ struct TimelineMetrics {
     active_simulations: VecDeque<Vec<(f64, f64)>>,
     current_sim_page: usize,
     sims_per_page: usize,
+    coherence_transitions: Vec<(f64, f64)>,  // (transition_number, coherence_probability)
+    order_persistence: Vec<(f64, f64)>,      // (transition_number, stable_duration)
+    branch_distribution: Vec<(f64, usize)>,  // (transition_number, branches_at_point)
 }
 
 impl TimelineMetrics {
@@ -44,6 +57,9 @@ impl TimelineMetrics {
             active_simulations: VecDeque::with_capacity(25),
             current_sim_page: 0,
             sims_per_page: 5,
+            coherence_transitions: Vec::new(),
+            order_persistence: Vec::new(),
+            branch_distribution: Vec::new(),
         }
     }
 
@@ -132,6 +148,30 @@ impl TimelineMetrics {
             }
         }
     }
+
+    fn record_coherence(&mut self, timeline: &TimelineState) {
+        let transition_num = self.timeline_counts.len() as f64;
+        self.coherence_transitions.push((
+            transition_num,
+            timeline.calculate_coherence_probability()
+        ));
+
+        // Record order persistence
+        if let Some(duration) = timeline.metrics.stable_order_duration.last() {
+            self.order_persistence.push((
+                transition_num,
+                duration.as_secs_f64() * 1000.0  // Convert to milliseconds
+            ));
+        }
+
+        // Record branch points
+        if let Some((time, branches)) = timeline.metrics.branch_points.last() {
+            self.branch_distribution.push((
+                transition_num,
+                *branches
+            ));
+        }
+    }
 }
 
 struct UnstableMemory {
@@ -167,6 +207,7 @@ struct TimelineState {
     /// Historical changes for coherence tracking
     /// Currently unused - will be used for timeline fabric stability
     changes: Vec<Arc<TimelineState>>,
+    metrics: CoherenceMetrics,
 }
 
 fn count_timelines(timeline: &TimelineState) -> usize {
@@ -185,6 +226,7 @@ impl TimelineState {
             local_entropy: 0.0,
             parent: None,
             changes: Vec::new(),
+            metrics: CoherenceMetrics::default(),
         }
     }
 
@@ -201,6 +243,7 @@ impl TimelineState {
             local_entropy: 0.0,
             parent: None,
             changes: Vec::new(),
+            metrics: CoherenceMetrics::default(),
         }
     }
 
@@ -274,30 +317,95 @@ impl TimelineState {
         } else {
             1.0  // Tick tock goes the quantum clock... only on a single timeline
         };
-
+        let old_order = self.local_order;
+        
         unsafe {
+            let old_state = *self.memory.state.get();
+            self.memory.transition();
             // Just let time flow gently...
             self.memory.transition();
             if let Some(state) = *self.memory.state.get() {
                 self.child_timelines.push(Arc::new(TimelineState::new_with_state(Some(state))));
             }
+            let new_state = *self.memory.state.get();
+            
+            // Track order/disorder transitions
+            let was_ordered = old_order > 0.5;
+            let is_ordered = self.calculate_local_order() > 0.5;
+            
+            match (was_ordered, is_ordered) {
+                (false, true) => self.metrics.disorder_to_order_transitions += 1,
+                (true, false) => self.metrics.order_to_disorder_transitions += 1,
+                (true, true) => {
+                    if let Some((last_time, _)) = self.metrics.branch_points.last() {
+                        self.metrics.stable_order_duration.push(start - *last_time);
+                    }
+                },
+                _ => ()
+            }
+
+            // Branch and track
+            if let Some(state) = new_state {
+                let new_branch = TimelineState::new_with_state(Some(state));
+                self.child_timelines.push(Arc::new(new_branch));
+                self.metrics.branch_points.push((start, self.child_timelines.len()));
+            }
         }
 
         // Update metrics
         self.local_order = self.calculate_local_order();
-        self.local_entropy = if total_timelines > 1 {
-            (total_timelines as f64).log2()  // Pure quantum entropy
+        self.local_entropy = if self.child_timelines.len() > 1 {
+            (self.child_timelines.len() as f64).log2()  // Pure quantum entropy
         } else {
-            (total_timelines as f64).log2()
+            (self.child_timelines.len() as f64).log2()
         };
         
         // Apply dilation based on THIS timeline's complexity
-        if total_timelines > 1 {
+        if self.child_timelines.len() > 1 {
             let elapsed = start.elapsed();
             thread::sleep(Duration::from_nanos(
-                elapsed.as_nanos() as u64 * dilation_factor as u64  // PROPER time dilation!
+                elapsed.as_nanos() as u64 * (self.child_timelines.len() as f64).log2() as u64  // PROPER time dilation!
             ));
         }
+    }
+
+    fn calculate_coherence_probability(&self) -> f64 {
+        let total_transitions = self.metrics.disorder_to_order_transitions 
+            + self.metrics.order_to_disorder_transitions;
+        
+        if total_transitions == 0 {
+            return 0.0;
+        }
+
+        let effective_order_transitions = (self.metrics.disorder_to_order_transitions as usize)
+            * self.metrics.branch_points.iter()
+                .map(|(_, branches)| *branches)
+                .sum::<usize>();
+
+        (effective_order_transitions as f64) / (total_transitions as f64)
+    }
+
+    fn track_pattern_formation(&mut self, time: Instant, old_state: Option<bool>) {
+        let pattern_type = match (old_state, *self.memory.state.get()) {
+            (None, Some(_)) => PatternType::Emergence,
+            (Some(false), Some(true)) => PatternType::OrderFormation,
+            (Some(true), Some(true)) => PatternType::OrderStabilization,
+            _ => PatternType::Chaos
+        };
+
+        // Track hexagonal patterns
+        if let Some(hex_pattern) = self.detect_hexagonal_structure() {
+            self.metrics.pattern_formations.push((time, hex_pattern));
+        }
+    }
+
+    fn detect_hexagonal_structure(&self) -> Option<HexPattern> {
+        // Look for six-fold symmetry in branch patterns
+        if self.child_timelines.len() >= 6 {
+            // Check for hexagonal arrangement of order values
+            // This would be AMAZING to implement!
+        }
+        None  // For now
     }
 }
 
@@ -933,6 +1041,31 @@ fn ui<B: Backend>(f: &mut Frame<B>, metrics: &TimelineMetrics) {
         Line::from("Press PageUp/PageDown or n/p to browse simulations"),
         Line::from("Press SPACE to run simulation"),
         Line::from("Press 'q' to quit"),
+        Line::from(vec![
+            Span::raw("Coherence Probability: "),
+            Span::styled(
+                format!("{:.4}%", metrics.coherence_transitions.last()
+                    .map(|(_, prob)| prob * 100.0)
+                    .unwrap_or(0.0)),
+                Style::default().fg(Color::Green)
+            )
+        ]),
+        Line::from(vec![
+            Span::raw("Average Order Duration: "),
+            Span::styled(
+                format!("{:.2}ms", metrics.order_persistence.last()
+                    .map(|(_, duration)| *duration)
+                    .unwrap_or(0.0)),
+                Style::default().fg(Color::Blue)
+            )
+        ]),
+        Line::from(vec![
+            Span::raw("Branch Points: "),
+            Span::styled(
+                metrics.branch_distribution.len().to_string(),
+                Style::default().fg(Color::Magenta)
+            )
+        ]),
     ];
 
     let metrics_paragraph = Paragraph::new(metrics_text)
