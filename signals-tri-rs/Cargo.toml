@@ -1,0 +1,12 @@
+[package]
+name = "tri_simulation"
+version = "0.1.0"
+edition = "2021"
+default-run = "tri_simulation"
+
+[[bin]]
+name = "tri_simulation"
+path = "src/main.rs"
+
+[dependencies]
+blake3 = "1.3"
