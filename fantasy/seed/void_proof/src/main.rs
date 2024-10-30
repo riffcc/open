@@ -2,6 +2,8 @@ use std::cell::UnsafeCell;
 use std::io::{self, Write};
 use std::time::{Duration, Instant};
 use std::thread;
+use std::sync::{Arc, Mutex};
+use std::collections::VecDeque;
 use crossterm::{
     event::{self, Event, KeyCode, KeyEvent},
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
@@ -18,6 +20,7 @@ struct TimelineMetrics {
     order_ratio: f64,
     total_entropy: u64,
     runs_completed: u32,
+    active_simulations: VecDeque<Vec<(f64, f64)>>, // Store last 25 simulation curves
 }
 
 impl TimelineMetrics {
@@ -27,11 +30,13 @@ impl TimelineMetrics {
             order_ratio: 0.0,
             total_entropy: 0,
             runs_completed: 0,
+            active_simulations: VecDeque::with_capacity(25),
         }
     }
 
     fn record_transition(&mut self, transition: u32, timeline_count: usize) {
-        self.timeline_counts.push((transition as f64, timeline_count as f64));
+        let point = (transition as f64, timeline_count as f64);
+        self.timeline_counts.push(point);
         
         // Calculate entropy as log2 of timeline count
         if timeline_count > 1 {
@@ -280,6 +285,40 @@ fn run_simulation(metrics: &mut TimelineMetrics) {
     metrics.clear_run();
 }
 
+fn run_parallel_simulations(metrics: Arc<Mutex<TimelineMetrics>>) {
+    let mut handles = vec![];
+    
+    for _ in 0..25 {
+        let metrics = Arc::clone(&metrics);
+        handles.push(thread::spawn(move || {
+            let mut local_timeline = TimelineState::new();
+            let mut points = Vec::new();
+            
+            for i in 0..25 {
+                local_timeline.transition();
+                let count = count_timelines(&local_timeline);
+                points.push((i as f64, count as f64));
+                
+                // Small sleep to make visualization visible
+                thread::sleep(Duration::from_millis(50));
+                
+                let mut metrics = metrics.lock().unwrap();
+                metrics.record_transition(i, count);
+                
+                // Update active simulations
+                if metrics.active_simulations.len() >= 25 {
+                    metrics.active_simulations.pop_front();
+                }
+                metrics.active_simulations.push_back(points.clone());
+            }
+        }));
+    }
+
+    for handle in handles {
+        handle.join().unwrap();
+    }
+}
+
 fn ui(f: &mut Frame<CrosstermBackend<io::Stdout>>, metrics: &TimelineMetrics) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
@@ -289,19 +328,25 @@ fn ui(f: &mut Frame<CrosstermBackend<io::Stdout>>, metrics: &TimelineMetrics) {
         ])
         .split(f.size());
 
-    // Create the timeline growth chart
-    let dataset = Dataset::default()
-        .name("Timeline Growth")
-        .marker(symbols::Marker::Dot)
-        .graph_type(GraphType::Line)
-        .data(&metrics.timeline_counts);
+    // Create datasets for all active simulations
+    let datasets: Vec<Dataset> = metrics.active_simulations.iter()
+        .enumerate()
+        .map(|(i, points)| {
+            Dataset::default()
+                .name(format!("Sim {}", i))
+                .marker(symbols::Marker::Dot)
+                .graph_type(GraphType::Line)
+                .data(points)
+                .style(Style::default().fg(Color::Indexed((i * 10 + 1) as u8)))
+        })
+        .collect();
 
-    let max_y = metrics.timeline_counts.iter()
-        .map(|(_, y)| *y)
+    let max_y = metrics.active_simulations.iter()
+        .flat_map(|sim| sim.iter().map(|(_, y)| *y))
         .fold(0.0, f64::max)
         .max(1.0);
 
-    let chart = Chart::new(vec![dataset])
+    let chart = Chart::new(datasets)
         .block(Block::default().title("Timeline Growth").borders(Borders::ALL))
         .x_axis(Axis::default().title("Transitions").bounds([0.0, 25.0]))
         .y_axis(Axis::default().title("Timeline Count").bounds([0.0, max_y]));
@@ -349,17 +394,18 @@ fn main() -> io::Result<()> {
     io::stdout().execute(EnterAlternateScreen)?;
     let mut terminal = Terminal::new(CrosstermBackend::new(io::stdout()))?;
 
-    let mut metrics = TimelineMetrics::new();
+    let metrics = Arc::new(Mutex::new(TimelineMetrics::new()));
 
     loop {
-        terminal.draw(|f| ui(f, &metrics))?;
+        terminal.draw(|f| ui(f, &metrics.lock().unwrap()))?;
 
         if event::poll(Duration::from_millis(100))? {
             if let Event::Key(key) = event::read()? {
                 match key.code {
                     KeyCode::Char('q') => break,
-                    KeyCode::Char(' ') => run_simulation(&mut metrics),
-                    _ => {}
+                    KeyCode::Char(' ') => run_parallel_simulations(Arc::clone(&metrics)),
+                    KeyCode::Char('s') => run_simulation(&mut metrics.lock().unwrap()),
+                    _ => run_simulation(&mut metrics.lock().unwrap()),
                 }
             }
         }
