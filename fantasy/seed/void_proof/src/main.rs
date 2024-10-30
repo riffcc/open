@@ -1,11 +1,11 @@
 use std::cell::UnsafeCell;
-use std::io::{self, Write};
+use std::io;
 use std::time::{Duration, Instant};
 use std::thread;
 use std::sync::{Arc, Mutex};
 use std::collections::VecDeque;
 use crossterm::{
-    event::{self, Event, KeyCode, KeyEvent},
+    event::{self, Event, KeyCode},
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
     ExecutableCommand,
 };
@@ -21,6 +21,8 @@ struct TimelineMetrics {
     total_entropy: u64,
     runs_completed: u32,
     active_simulations: VecDeque<Vec<(f64, f64)>>, // Store last 25 simulation curves
+    current_sim_page: usize,
+    sims_per_page: usize,
 }
 
 impl TimelineMetrics {
@@ -31,6 +33,8 @@ impl TimelineMetrics {
             total_entropy: 0,
             runs_completed: 0,
             active_simulations: VecDeque::with_capacity(25),
+            current_sim_page: 0,
+            sims_per_page: 5,
         }
     }
 
@@ -56,6 +60,52 @@ impl TimelineMetrics {
     fn clear_run(&mut self) {
         self.timeline_counts.clear();
         self.runs_completed += 1;
+    }
+
+    fn add_simulation_progress(&mut self, sim_index: usize, transition: u32, count: usize) {
+        while self.active_simulations.len() <= sim_index {
+            self.active_simulations.push_back(Vec::new());
+        }
+        
+        if let Some(sim) = self.active_simulations.get_mut(sim_index) {
+            sim.push((transition as f64, count as f64));
+        }
+    }
+
+    fn next_page(&mut self) {
+        let max_pages = (self.active_simulations.len() + self.sims_per_page - 1) / self.sims_per_page;
+        self.current_sim_page = (self.current_sim_page + 1) % max_pages;
+    }
+
+    fn prev_page(&mut self) {
+        let max_pages = (self.active_simulations.len() + self.sims_per_page - 1) / self.sims_per_page;
+        self.current_sim_page = (self.current_sim_page + max_pages - 1) % max_pages;
+    }
+
+    fn inject_entropy(&mut self, sim_index: Option<usize>) {
+        match sim_index {
+            Some(idx) => {
+                if let Some(sim) = self.active_simulations.get_mut(idx) {
+                    if let Some(&(transition, _)) = sim.last() {
+                        // Inject entropy at current transition point
+                        let mut local_timeline = TimelineState::new();
+                        for _ in 0..((transition as u32) + 1) {
+                            local_timeline.transition();
+                        }
+                        // Force an additional transition
+                        local_timeline.transition();
+                        let count = count_timelines(&local_timeline);
+                        sim.push((transition + 1.0, count as f64));
+                    }
+                }
+            },
+            None => {
+                // Inject entropy into all active simulations
+                for i in 0..self.active_simulations.len() {
+                    self.inject_entropy(Some(i));
+                }
+            }
+        }
     }
 }
 
@@ -94,7 +144,6 @@ impl TimelineState {
 
     fn transition(&mut self) {
         let start = Instant::now();
-        let time_since_spawn = start.duration_since(self.spawn_time);
         
         unsafe {
             self.memory.transition();
@@ -105,13 +154,14 @@ impl TimelineState {
             }
         }
 
-        // Natural time dilation based purely on computational load
+        // Natural time dilation based on timeline count
+        // Add visualization delay proportional to entropy
+        // This only affects our observation, not the underlying timeline mechanics
         let elapsed = start.elapsed();
-        let sleep_duration = Duration::from_nanos(
-            elapsed.as_nanos() as u64 * 
-            (self.child_timelines.len() + 1) as u64
-        );
-        thread::sleep(sleep_duration);
+        if !self.child_timelines.is_empty() {
+            let dilation = (self.child_timelines.len() as f64).log2() as u64;
+            thread::sleep(Duration::from_nanos(elapsed.as_nanos() as u64 * dilation));
+        }
 
         // Allow child timelines to transition
         for timeline in &mut self.child_timelines {
@@ -270,6 +320,115 @@ mod tests {
         assert!(elapsed > Duration::from_micros(1), 
             "Time dilation should slow down processing");
     }
+
+    #[test]
+    fn test_metrics_paging() {
+        let mut metrics = TimelineMetrics::new();
+        
+        // Add some test simulations
+        for i in 0..10 {
+            metrics.add_simulation_progress(i, 0, i+1);
+        }
+        
+        assert_eq!(metrics.current_sim_page, 0);
+        
+        // Test page navigation
+        metrics.next_page();
+        assert_eq!(metrics.current_sim_page, 1);
+        
+        metrics.prev_page();
+        assert_eq!(metrics.current_sim_page, 0);
+    }
+
+    #[test]
+    fn test_parallel_simulation_tracking() {
+        let metrics = Arc::new(Mutex::new(TimelineMetrics::new()));
+        
+        // Run a small parallel simulation
+        run_parallel_simulations(Arc::clone(&metrics));
+        
+        // Give some time for simulations to run
+        thread::sleep(Duration::from_millis(100));
+        
+        let metrics = metrics.lock().unwrap();
+        assert!(!metrics.active_simulations.is_empty(), "Should have active simulations");
+        
+        // Check that simulations are being tracked separately
+        if let Some(first_sim) = metrics.active_simulations.front() {
+            assert!(!first_sim.is_empty(), "Simulation should have data points");
+        }
+    }
+
+    #[test]
+    fn test_timeline_branching_patterns() {
+        let mut root_timeline = TimelineState::new();
+        let mut branch_points = Vec::new();
+        let mut timings = Vec::new();
+        let mut timeline_counts = Vec::new();
+        
+        // Record points where branching occurs, measure timing, and track total timelines
+        for i in 0..10 {
+            let before_count = count_timelines(&root_timeline);
+            let start = Instant::now();
+            root_timeline.transition();
+            let elapsed = start.elapsed();
+            let after_count = count_timelines(&root_timeline);
+            
+            timeline_counts.push(after_count);
+            
+            if after_count > before_count {
+                branch_points.push(i);
+                timings.push(elapsed);
+            }
+        }
+        
+        // Verify that branching occurs
+        assert!(!branch_points.is_empty(), "Timeline should branch at least once");
+        
+        // Verify exponential growth pattern in timeline counts
+        if timeline_counts.len() >= 3 {
+            let first_growth = timeline_counts[1] - timeline_counts[0];
+            let last_growth = timeline_counts[timeline_counts.len()-1] - timeline_counts[timeline_counts.len()-2];
+            assert!(last_growth >= first_growth, 
+                "Timeline growth should follow exponential pattern");
+        }
+        
+        // Verify time dilation
+        if timings.len() >= 2 {
+            let first_timing = timings[0];
+            let last_timing = timings[timings.len() - 1];
+            assert!(last_timing > first_timing, 
+                "Later transitions should take longer due to time dilation");
+        }
+        
+        // Verify that we see branching activity throughout the simulation
+        assert!(
+            branch_points.iter().any(|&time| time > 5),
+            "Should be able to branch in later transitions"
+        );
+    }
+
+    #[test]
+    fn test_entropy_injection() {
+        let mut metrics = TimelineMetrics::new();
+        
+        // Setup initial simulation state
+        metrics.add_simulation_progress(0, 0, 1);
+        metrics.add_simulation_progress(0, 1, 2);
+        
+        // Test single simulation entropy injection
+        let before_count = metrics.active_simulations[0].len();
+        metrics.inject_entropy(Some(0));
+        assert!(metrics.active_simulations[0].len() > before_count, 
+            "Entropy injection should add new timeline states");
+        
+        // Test parallel entropy injection
+        metrics.add_simulation_progress(1, 0, 1);
+        metrics.inject_entropy(None);
+        for sim in &metrics.active_simulations {
+            assert!(!sim.is_empty(), "All simulations should have timeline states after parallel injection");
+        }
+    }
 }
 
 fn run_simulation(metrics: &mut TimelineMetrics) {
@@ -286,36 +445,24 @@ fn run_simulation(metrics: &mut TimelineMetrics) {
 }
 
 fn run_parallel_simulations(metrics: Arc<Mutex<TimelineMetrics>>) {
-    let mut handles = vec![];
-    
-    for _ in 0..25 {
+    for sim_index in 0..25 {
         let metrics = Arc::clone(&metrics);
-        handles.push(thread::spawn(move || {
+        thread::spawn(move || {
             let mut local_timeline = TimelineState::new();
-            let mut points = Vec::new();
             
             for i in 0..25 {
                 local_timeline.transition();
                 let count = count_timelines(&local_timeline);
-                points.push((i as f64, count as f64));
                 
-                // Small sleep to make visualization visible
-                thread::sleep(Duration::from_millis(50));
-                
+                // Update metrics immediately after each transition
                 let mut metrics = metrics.lock().unwrap();
-                metrics.record_transition(i, count);
+                metrics.add_simulation_progress(sim_index, i, count);
+                drop(metrics); // Release lock immediately
                 
-                // Update active simulations
-                if metrics.active_simulations.len() >= 25 {
-                    metrics.active_simulations.pop_front();
-                }
-                metrics.active_simulations.push_back(points.clone());
+                // Smaller sleep for more responsive updates
+                thread::sleep(Duration::from_millis(10));
             }
-        }));
-    }
-
-    for handle in handles {
-        handle.join().unwrap();
+        });
     }
 }
 
@@ -329,15 +476,18 @@ fn ui(f: &mut Frame<CrosstermBackend<io::Stdout>>, metrics: &TimelineMetrics) {
         .split(f.size());
 
     // Create datasets for all active simulations
+    let start_idx = metrics.current_sim_page * metrics.sims_per_page;
     let datasets: Vec<Dataset> = metrics.active_simulations.iter()
+        .skip(start_idx)
+        .take(metrics.sims_per_page)
         .enumerate()
         .map(|(i, points)| {
             Dataset::default()
-                .name(format!("Sim {}", i))
+                .name(format!("Sim {}", start_idx + i))
                 .marker(symbols::Marker::Dot)
                 .graph_type(GraphType::Scatter)
                 .data(points)
-                .style(Style::default().fg(Color::Indexed((i * 6 + 1) as u8)))
+                .style(Style::default().fg(Color::Indexed((i * 12 + 1) as u8)))
         })
         .collect();
 
@@ -348,18 +498,8 @@ fn ui(f: &mut Frame<CrosstermBackend<io::Stdout>>, metrics: &TimelineMetrics) {
 
     let chart = Chart::new(datasets)
         .block(Block::default().title("Timeline Growth").borders(Borders::ALL))
-        .x_axis(
-            Axis::default()
-                .title("Transitions")
-                .bounds([0.0, 25.0])
-                .style(Style::default().fg(Color::Gray))
-        )
-        .y_axis(
-            Axis::default()
-                .title("Timeline Count")
-                .bounds([0.0, max_y])
-                .style(Style::default().fg(Color::Gray))
-        );
+        .x_axis(Axis::default().title("Transitions").bounds([0.0, 25.0]))
+        .y_axis(Axis::default().title("Timeline Count").bounds([0.0, max_y]));
 
     f.render_widget(chart, chunks[0]);
 
@@ -386,7 +526,18 @@ fn ui(f: &mut Frame<CrosstermBackend<io::Stdout>>, metrics: &TimelineMetrics) {
                 Style::default().fg(Color::Magenta)
             )
         ]),
+        Line::from(vec![
+            Span::raw("Simulation Page: "),
+            Span::styled(
+                format!("{}/{}", 
+                    metrics.current_sim_page + 1,
+                    (metrics.active_simulations.len() + metrics.sims_per_page - 1) / metrics.sims_per_page
+                ),
+                Style::default().fg(Color::Cyan)
+            )
+        ]),
         Line::from(""),
+        Line::from("PageUp/PageDown to browse simulations"),
         Line::from("Press SPACE to run simulation"),
         Line::from("Press 'q' to quit"),
     ];
@@ -405,20 +556,44 @@ fn main() -> io::Result<()> {
     let mut terminal = Terminal::new(CrosstermBackend::new(io::stdout()))?;
 
     let metrics = Arc::new(Mutex::new(TimelineMetrics::new()));
+    let mut simulation_mode = false;  // false = single, true = parallel
 
     loop {
         terminal.draw(|f| ui(f, &metrics.lock().unwrap()))?;
 
-        if event::poll(Duration::from_millis(100))? {
+        if event::poll(Duration::from_millis(16))? {
             if let Event::Key(key) = event::read()? {
                 match key.code {
                     KeyCode::Char('q') => break,
-                    KeyCode::Char(' ') => run_parallel_simulations(Arc::clone(&metrics)),
-                    KeyCode::Char('s') => run_simulation(&mut metrics.lock().unwrap()),
-                    _ => run_simulation(&mut metrics.lock().unwrap()),
+                    KeyCode::Char(' ') => {
+                        simulation_mode = true;
+                        run_parallel_simulations(Arc::clone(&metrics));
+                    },
+                    KeyCode::Char('s') => {
+                        simulation_mode = false;
+                        run_simulation(&mut metrics.lock().unwrap());
+                    },
+                    KeyCode::Char('e') => {
+                        // Inject entropy based on mode
+                        let mut metrics = metrics.lock().unwrap();
+                        if simulation_mode {
+                            metrics.inject_entropy(None);  // All sims
+                        } else {
+                            metrics.inject_entropy(Some(0));  // Current sim
+                        }
+                    },
+                    KeyCode::Char('n') => metrics.lock().unwrap().next_page(),
+                    KeyCode::Char('p') => metrics.lock().unwrap().prev_page(),
+                    _ => {
+                        if !simulation_mode {
+                            // Single-sim mode: any key triggers transition
+                            run_simulation(&mut metrics.lock().unwrap());
+                        }
+                    }
                 }
             }
         }
+        thread::sleep(Duration::from_millis(16));
     }
 
     // Cleanup
