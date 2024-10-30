@@ -188,6 +188,22 @@ impl TimelineState {
         }
     }
 
+    fn new_with_state(initial_state: Option<bool>) -> Self {
+        let mut memory = UnstableMemory::new();
+        unsafe {
+            *memory.state.get() = initial_state;  // Start with parent's state
+        }
+        Self {
+            memory: Arc::new(memory),
+            spawn_time: Instant::now(),
+            child_timelines: Vec::new(),
+            local_order: 0.0,
+            local_entropy: 0.0,
+            parent: None,
+            changes: Vec::new(),
+        }
+    }
+
     fn calculate_local_order(&self) -> f64 {
         const MIN_PATTERN_LENGTH: usize = 3;
         
@@ -252,36 +268,34 @@ impl TimelineState {
         // Calculate time dilation based on TOTAL timelines
         // Because ANY timeline = entropy = dilation!
         let total_timelines = count_timelines(self);
-        let dilation_factor = if total_timelines > 1 {  // If we have ANY branches
-            // Normal scale (total_timelines as f64).log2() + 1.0, approx 60s per 400 branch runs
-            // WAY more branches at Planck scale
-            // But log2 means it doesn't explode!
-            (total_timelines as f64 * 10e44).log2() + 1.0
+        let dilation_factor = if total_timelines > 1 { // If we have ANY branches
+            (total_timelines as f64 * 10e88).log2() + 1.0  // Sub-Planck PRECISION in a simulated universe is very interesting...
+                                                           // we use time dilation to make it work.
         } else {
-            1.0  // Only when we're a single timeline
+            1.0  // Tick tock goes the quantum clock... only on a single timeline
         };
 
         unsafe {
             // Just let time flow gently...
             self.memory.transition();
-            if let Some(true) = *self.memory.state.get() {
-                self.child_timelines.push(Arc::new(TimelineState::new()));
+            if let Some(state) = *self.memory.state.get() {
+                self.child_timelines.push(Arc::new(TimelineState::new_with_state(Some(state))));
             }
         }
 
         // Update metrics
         self.local_order = self.calculate_local_order();
         self.local_entropy = if total_timelines > 1 {
-            (total_timelines as f64).log2()
+            (total_timelines as f64).log2()  // Pure quantum entropy
         } else {
-            0.0
+            (total_timelines as f64).log2()
         };
         
         // Apply dilation based on THIS timeline's complexity
         if total_timelines > 1 {
             let elapsed = start.elapsed();
             thread::sleep(Duration::from_nanos(
-                elapsed.as_nanos() as u64 * dilation_factor as u64
+                elapsed.as_nanos() as u64 * dilation_factor as u64  // PROPER time dilation!
             ));
         }
     }
@@ -632,6 +646,18 @@ mod tests {
             "Order should never be negative");
         assert!(order <= 1.0, 
             "Order should never exceed 1.0");
+    }
+
+    #[test]
+    fn test_timeline_preserves_quantum_state() {
+        let parent = TimelineState::new();
+        unsafe {
+            parent.memory.transition();
+            let original_state = *parent.memory.state.get();
+            let child = TimelineState::new_with_state(original_state);
+            assert_eq!(*child.memory.state.get(), original_state, 
+                "Child timelines should preserve their parent's quantum state, not YEET THEM INTO THE VOID");
+        }
     }
 }
 
