@@ -335,9 +335,9 @@ fn ui(f: &mut Frame<CrosstermBackend<io::Stdout>>, metrics: &TimelineMetrics) {
             Dataset::default()
                 .name(format!("Sim {}", i))
                 .marker(symbols::Marker::Dot)
-                .graph_type(GraphType::Line)
+                .graph_type(GraphType::Scatter)
                 .data(points)
-                .style(Style::default().fg(Color::Indexed((i * 10 + 1) as u8)))
+                .style(Style::default().fg(Color::Indexed((i * 6 + 1) as u8)))
         })
         .collect();
 
@@ -348,8 +348,18 @@ fn ui(f: &mut Frame<CrosstermBackend<io::Stdout>>, metrics: &TimelineMetrics) {
 
     let chart = Chart::new(datasets)
         .block(Block::default().title("Timeline Growth").borders(Borders::ALL))
-        .x_axis(Axis::default().title("Transitions").bounds([0.0, 25.0]))
-        .y_axis(Axis::default().title("Timeline Count").bounds([0.0, max_y]));
+        .x_axis(
+            Axis::default()
+                .title("Transitions")
+                .bounds([0.0, 25.0])
+                .style(Style::default().fg(Color::Gray))
+        )
+        .y_axis(
+            Axis::default()
+                .title("Timeline Count")
+                .bounds([0.0, max_y])
+                .style(Style::default().fg(Color::Gray))
+        );
 
     f.render_widget(chart, chunks[0]);
 
