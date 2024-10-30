@@ -83,4 +83,49 @@ mod tests {
 
         assert!(pattern_found, "Transitions should naturally form patterns");
     }
+
+    #[test]
+    fn test_patterns_stabilize() {
+        let memory = UnstableMemory::new();
+        let mut stable_patterns_found = 0;
+        let mut total_comparisons = 0;
+        let mut observation_windows = Vec::new();
+        
+        // Record multiple observation windows
+        for _ in 0..10 {
+            let mut window = Vec::new();
+            for _ in 0..100 {
+                unsafe {
+                    memory.transition();
+                    window.push(*memory.state.get());
+                }
+            }
+            observation_windows.push(window);
+        }
+
+        // Look for patterns that repeat across different observation windows
+        for i in 0..observation_windows.len() {
+            for j in (i+1)..observation_windows.len() {
+                let window1 = &observation_windows[i];
+                let window2 = &observation_windows[j];
+                
+                // Look for matching subsequences of at least length 3
+                for k in 0..(window1.len() - 2) {
+                    total_comparisons += 1;
+                    if window1[k..(k+3)] == window2[k..(k+3)] {
+                        stable_patterns_found += 1;
+                    }
+                }
+            }
+        }
+
+        let order_ratio = (stable_patterns_found as f64) / (total_comparisons as f64);
+        println!("Order emergence ratio: {:.2}% ({} stable patterns in {} comparisons)", 
+                order_ratio * 100.0,
+                stable_patterns_found,
+                total_comparisons);
+
+        assert!(stable_patterns_found > 0, 
+            "Should find patterns that remain stable across multiple observation windows");
+    }
 }
