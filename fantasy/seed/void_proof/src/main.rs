@@ -1,4 +1,5 @@
 use std::cell::UnsafeCell;
+use std::io::{self, Write};
 
 struct UnstableMemory {
     state: UnsafeCell<Option<bool>>
@@ -127,5 +128,58 @@ mod tests {
 
         assert!(stable_patterns_found > 0, 
             "Should find patterns that remain stable across multiple observation windows");
+    }
+}
+
+fn main() {
+    let memory = UnstableMemory::new();
+    let mut total_transitions = 0;
+    let mut ordered_patterns = 0;
+    let mut last_states = Vec::with_capacity(3);
+
+    println!("Void Proof Interactive Terminal");
+    println!("Press ENTER to trigger a transition");
+    println!("Press 'q' to quit\n");
+
+    loop {
+        print!("\rTransitions: {} | Ordered Patterns: {} | Order Ratio: {:.2}% > ", 
+            total_transitions, 
+            ordered_patterns,
+            if total_transitions > 0 {
+                (ordered_patterns as f64 / total_transitions as f64) * 100.0
+            } else {
+                0.0
+            });
+        io::stdout().flush().unwrap();
+
+        let mut input = String::new();
+        io::stdin().read_line(&mut input).unwrap();
+
+        if input.trim() == "q" {
+            break;
+        }
+
+        unsafe {
+            let before = *memory.state.get();
+            memory.transition();
+            let after = *memory.state.get();
+            
+            // Track last 3 states for pattern detection
+            last_states.push(after);
+            if last_states.len() > 3 {
+                last_states.remove(0);
+            }
+
+            // Check for patterns (3 identical states in a row)
+            if last_states.len() == 3 
+                && last_states.iter().all(|&x| x == last_states[0]) {
+                ordered_patterns += 1;
+            }
+
+            total_transitions += 1;
+
+            // Visual representation of the transition
+            println!("\n{:?} -> {:?}", before, after);
+        }
     }
 }
