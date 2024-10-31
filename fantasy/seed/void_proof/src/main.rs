@@ -6,6 +6,7 @@ use std::collections::VecDeque;
 use std::sync::atomic::{AtomicUsize, Ordering, AtomicBool};
 use once_cell::sync::Lazy;
 use num_cpus;
+use std::collections::HashMap;
 
 use crossterm::{
     event::{self, Event, KeyCode},
@@ -13,10 +14,11 @@ use crossterm::{
     ExecutableCommand,
 };
 use ratatui::{
+    backend::Backend,
     prelude::*,
     widgets::{Axis, Block, Borders, Chart, Dataset, GraphType, Paragraph},
     widgets::canvas::{Canvas, Points},
-    Terminal, Frame, backend::CrosstermBackend,
+    Terminal, Frame,
 };
 
 static EVENT_QUEUE: Lazy<Arc<Mutex<EventQueue>>> = Lazy::new(|| {
@@ -31,21 +33,23 @@ enum TimelineEvent {
 }
 
 struct EventQueue {
-    events: VecDeque<TimelineEvent>,
+    events: VecDeque<TimelineEvent>,           // Queue for pure events
+    time_dilated_events: Arc<Mutex<VecDeque<TimelineEvent>>>, // Queue for time-dilated events
     workers: Vec<thread::JoinHandle<()>>,
     timeline_count: Arc<AtomicUsize>,
-    state_pool: Arc<Mutex<Vec<Arc<TimelineState>>>>, // Keep isolated states
-    running: Arc<AtomicBool>,  // Add shutdown signal
+    state_pool: Arc<Mutex<HashMap<usize, Arc<TimelineState>>>>,
+    running: Arc<AtomicBool>,
 }
 
 impl EventQueue {
     fn new(worker_count: usize) -> Self {
         Self {
             events: VecDeque::new(),
+            time_dilated_events: Arc::new(Mutex::new(VecDeque::new())),
             workers: Vec::with_capacity(worker_count),
             timeline_count: Arc::new(AtomicUsize::new(0)),
-            state_pool: Arc::new(Mutex::new(Vec::new())),
-            running: Arc::new(AtomicBool::new(true)),  // Start running
+            state_pool: Arc::new(Mutex::new(HashMap::new())),
+            running: Arc::new(AtomicBool::new(true)),
         }
     }
 
@@ -55,112 +59,108 @@ impl EventQueue {
             return;
         }
 
-        let events = Arc::new(Mutex::new(VecDeque::new()));
+        // Move initial events into `time_dilated_events`
         {
-            let mut shared_events = events.lock().unwrap();
-            shared_events.extend(self.events.drain(..));
+            let mut time_dilated_events = self.time_dilated_events.lock().unwrap();
+            time_dilated_events.extend(self.events.drain(..));
         }
 
         let count = Arc::clone(&self.timeline_count);
         let state_pool = Arc::clone(&self.state_pool);
         let running = Arc::clone(&self.running);
-        
+        let time_dilated_events = Arc::clone(&self.time_dilated_events);
+
         // Create fixed worker pool - one per CPU core
         for _ in 0..self.workers.capacity() {
-            let events = Arc::clone(&events);
+            let time_dilated_events = Arc::clone(&time_dilated_events);
             let metrics = Arc::clone(&metrics);
             let state_pool = Arc::clone(&state_pool);
             let count = Arc::clone(&count);
             let running = Arc::clone(&running);
-            
+
             let worker = thread::spawn(move || {
                 while running.load(Ordering::SeqCst) {
-                    if let Some(event) = events.lock().unwrap().pop_front() {
-                        // Each worker handles time dilation for whatever timeline it's processing
+                    // First get an event if available
+                    let event = time_dilated_events.lock().unwrap().pop_front();
+                    
+                    if let Some(event) = event {
                         match event {
                             TimelineEvent::Transition(id, maybe_state) => {
+                                // Preserve timeline memory by always cloning
                                 let state = if let Some(state) = maybe_state {
                                     state
                                 } else {
                                     let state_pool = state_pool.lock().unwrap();
-                                    Arc::clone(&state_pool[0])  // Clone the void
+                                    state_pool.get(&id)
+                                        .map(Arc::clone)
+                                        .unwrap_or_else(|| {
+                                            // Clone memory from void state to preserve timeline
+                                            let void_state = TimelineState::new();
+                                            let memory = void_state.memory.clone();
+                                            Arc::new(TimelineState::new_with_memory(memory))
+                                        })
                                 };
-                                
-                                // Each timeline calculates its own time dilation
+
+                                // Calculate dilation with preserved state
                                 let dilation = state.calculate_time_dilation();
-                                thread::sleep(Duration::from_nanos((dilation) as u64));
-                                
+                                thread::sleep(Duration::from_nanos(dilation as u64));
+
+                                // Ensure state transition preserves quantum properties
                                 let mut new_state = state.as_ref().clone();
                                 new_state.transition();
-                                
                                 let new_state = Arc::new(new_state);
-                                state_pool.lock().unwrap().push(Arc::clone(&new_state));
-                                
-                                events.lock().unwrap().push_back(TimelineEvent::Transition(id, Some(new_state)));
-                                metrics.lock().unwrap().record_transition(id as u32, state_pool.lock().unwrap().len());
+
+                                // Preserve timeline by updating state pool atomically
+                                {
+                                    let mut state_pool = state_pool.lock().unwrap();
+                                    state_pool.insert(id, Arc::clone(&new_state));
+                                }
+
+                                // Queue next transition while preserving continuity
+                                time_dilated_events.lock().unwrap().push_back(
+                                    TimelineEvent::Transition(id, Some(new_state))
+                                );
+
+                                // Update metrics while preserving timeline count
+                                if let Ok(mut metrics) = metrics.lock() {
+                                    metrics.record_transition(id as u32, state_pool.lock().unwrap().len());
+                                }
                             },
                             TimelineEvent::Branch(_parent_id, parent_state) => {
-                                // Branching timeline inherits parent's time dilation initially
+                                // Branching timeline inherits parent's time dilation
                                 let dilation = parent_state.calculate_time_dilation();
                                 thread::sleep(Duration::from_nanos((dilation) as u64));
-                                
+
                                 let new_id = count.fetch_add(1, Ordering::SeqCst);
                                 let new_state = TimelineState::new_with_state(
                                     parent_state.memory.get_state()
                                 );
-                                
+
                                 let state_arc = Arc::new(new_state);
-                                state_pool.lock().unwrap().push(Arc::clone(&state_arc));
-                                
-                                events.lock().unwrap().push_back(TimelineEvent::Transition(new_id, Some(state_arc)));
+                                state_pool.lock().unwrap().insert(new_id, Arc::clone(&state_arc));
+
+                                // Add the transition event to the time-dilated queue
+                                time_dilated_events.lock().unwrap().push_back(TimelineEvent::Transition(new_id, Some(state_arc)));
                             },
-                            _ => thread::sleep(Duration::from_millis(1))
+                            _ => thread::sleep(Duration::from_millis(1)),
                         }
                     } else {
                         thread::sleep(Duration::from_millis(1));
                     }
                 }
             });
-            
+
             self.workers.push(worker);
         }
     }
 
     fn get_timeline_states(&self, timeline_id: usize) -> Vec<Option<bool>> {
-        self.state_pool.lock()
-            .unwrap()
+        let state_pool = self.state_pool.lock().unwrap();
+        state_pool
             .iter()
-            .filter(|state| state.id.load(Ordering::SeqCst) == timeline_id)
-            .map(|state| state.memory.get_state())
+            .filter(|(&id, _)| id == timeline_id)
+            .map(|(_, state)| state.memory.get_state())
             .collect()
-    }
-
-    fn process_event(&mut self, event: TimelineEvent, metrics: &mut TimelineMetrics) {
-        match event {
-            TimelineEvent::Transition(sim_id, maybe_state) => {
-                let state = if let Some(state) = maybe_state {
-                    state
-                } else {
-                    let state_pool = self.state_pool.lock().unwrap();
-                    Arc::clone(&state_pool[0])  // Clone the void
-                };
-                
-                // Record state in the simulation's timeline
-                if let Some(sim) = metrics.active_simulations.get_mut(sim_id) {
-                    sim.push((
-                        Instant::now().elapsed().as_secs_f64(),
-                        state.child_timelines.len() as f64
-                    ));
-                }
-                
-                // Queue up next transition for this simulation
-                self.events.push_back(TimelineEvent::Transition(
-                    sim_id, 
-                    Some(state)
-                ));
-            },
-            _ => {}
-        }
     }
 
     fn shutdown(&self) {
@@ -169,6 +169,18 @@ impl EventQueue {
         for _ in &self.workers {
             thread::park_timeout(Duration::from_millis(100));
         }
+    }
+
+    fn project_timelines_to_sphere(&self) -> Vec<(f64, f64, f64)> {
+        let mut points = Vec::new();
+        let state_pool = self.state_pool.lock().unwrap();
+
+        for (id, state) in state_pool.iter() {
+            // Project each timeline's state to 3D coordinates
+            points.extend(project_timeline_to_sphere(state, *id as f64 * 0.1, *id as f64 * 0.1));
+        }
+
+        points
     }
 }
 
@@ -796,7 +808,7 @@ impl TimelineState {
     fn calculate_time_dilation(&self) -> f64 {
         let total_timelines = count_timelines(self);
         if total_timelines > 1 {
-            (total_timelines as f64 * 10e-88).log2() + 1.0  // Half Planck time
+            (total_timelines as f64 * 1e-88).log2()  // Pure Planck time scaling
         } else {
             1.0
         }
@@ -1268,16 +1280,25 @@ fn run_simulation(metrics: &mut TimelineMetrics) {
 }
 
 fn initialize_parallel_simulations(metrics: Arc<Mutex<TimelineMetrics>>) {
+    println!("Initializing parallel simulations...");
     let mut queue = EVENT_QUEUE.lock().unwrap();
+    
+    // First spawn workers if they haven't been spawned
+    queue.spawn_workers(Arc::clone(&metrics));
+    println!("Worker count: {}", queue.workers.len());
     
     {
         let mut metrics = metrics.lock().unwrap();
         if metrics.active_simulations.is_empty() {
             let count = metrics.parallel_timelines;
-            for i in 0..count {
+            for _ in 0..count {
                 let sim_id = metrics.add_simulation();
-                let timeline = TimelineState::new();
-                queue.events.push_back(TimelineEvent::Transition(sim_id, Some(Arc::new(timeline))));
+                let timeline = Arc::new(TimelineState::new());
+
+                // Update the state_pool with the initial timeline state
+                queue.state_pool.lock().unwrap().insert(sim_id, Arc::clone(&timeline));
+
+                queue.time_dilated_events.lock().unwrap().push_back(TimelineEvent::Transition(sim_id, Some(timeline)));
             }
         }
     }
@@ -1288,7 +1309,18 @@ fn run_parallel_simulations(metrics: Arc<Mutex<TimelineMetrics>>) {
     let metrics = metrics.lock().unwrap();
     // JUST MAKE EVERYTHING FUCKING TICK
     for (id, _) in metrics.active_simulations.iter().enumerate() {
-        queue.events.push_back(TimelineEvent::Transition(id, None));
+        // Retrieve the current state for the timeline ID
+        let state = {
+            let state_pool = queue.state_pool.lock().unwrap();
+            state_pool.get(&id).map(Arc::clone)
+        };
+
+        if let Some(state) = state {
+            queue.time_dilated_events.lock().unwrap().push_back(TimelineEvent::Transition(id, Some(state)));
+        } else {
+            // If state is not found, simply clone the existing lack of state
+            queue.time_dilated_events.lock().unwrap().push_back(TimelineEvent::Transition(id, None));
+        }
     }
 }
 
@@ -1324,29 +1356,44 @@ fn ui<B: Backend>(f: &mut Frame<B>, metrics: &TimelineMetrics) {
         ])
         .split(f.size());
 
-    // Update canvas to show actual timeline structure
-    let canvas = Canvas::default()
-        .block(Block::default()
-            .title("Quantum Pattern Formation (CMB)")
-            .borders(Borders::ALL))
-        .paint(|ctx| {
-            // Get all timelines from the event queue
-            if let Ok(queue) = EVENT_QUEUE.lock() {
-                let states = queue.state_pool.lock().unwrap();
-                for (i, state) in states.iter().enumerate() {
-                    // Project timeline to 3D space
-                    let points = project_timeline_to_sphere(state, i as f64 * 0.1, i as f64 * 0.1);
-                    for (x, y, z) in points {
-                        ctx.draw(&Points {
-                            coords: &[(x, y)],
-                            color: Color::Green,
-                        });
-                    }
+    // Get the points for visualization
+    let sphere_points = {
+        let mut all_points = Vec::new();
+        if let Ok(queue) = EVENT_QUEUE.lock() {
+            if let Ok(state_pool) = queue.state_pool.lock() {
+                for (i, (_id, state_arc)) in state_pool.iter().enumerate() {
+                    let state_ref = state_arc.as_ref();
+                    let timeline_points = project_timeline_to_sphere(
+                        state_ref, 
+                        i as f64 * 0.1, 
+                        i as f64 * 0.1
+                    );
+                    all_points.extend(timeline_points);
                 }
             }
+        }
+        all_points
+    };
+
+    // Now use the collected points for rendering
+    let canvas = Canvas::default()
+        .block(Block::default().title("Timeline Sphere").borders(Borders::ALL))
+        .paint(|ctx| {
+            // Create points for visualization
+            let points = Points {
+                coords: &sphere_points
+                    .iter()
+                    .map(|(x, y, z)| {
+                        // Scale the points to be more visible
+                        (x * 10.0, y * 10.0)  // Multiply by scaling factor
+                    })
+                    .collect::<Vec<_>>(),
+                color: Color::Green,
+            };
+            ctx.draw(&points);
         })
-        .x_bounds([-1.0, 1.0])
-        .y_bounds([-1.0, 1.0]);
+        .x_bounds([-10.0, 10.0])  // Increased bounds
+        .y_bounds([-10.0, 10.0]); // Increased bounds
 
     // Combined Entropy/Order Graph with distribution bands
     let mut datasets = Vec::new();
@@ -1463,7 +1510,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, metrics: &TimelineMetrics) {
         .x_axis(Axis::default()
             .title("Transitions")
             .style(Style::default().fg(Color::Gray))
-            .bounds([0.0, 25.0]))
+        .bounds([0.0, 25.0]))
         .y_axis(Axis::default()
             .title("Magnitude")
             .style(Style::default().fg(Color::Gray))
@@ -1513,8 +1560,10 @@ fn ui<B: Backend>(f: &mut Frame<B>, metrics: &TimelineMetrics) {
             )
         ]),
         Line::from(""),
+        Line::from("Press ENTER or SPACE to run simulation"),
         Line::from("Press PageUp/PageDown or n/p to browse simulations"),
-        Line::from("Press SPACE to run simulation"),
+        Line::from("Press 's' for single simulation mode"),
+        Line::from("Press 'e' to inject entropy"),
         Line::from("Press 'q' to quit"),
         Line::from(vec![
             Span::raw("Coherence Probability: "),
@@ -1541,6 +1590,18 @@ fn ui<B: Backend>(f: &mut Frame<B>, metrics: &TimelineMetrics) {
                 Style::default().fg(Color::Magenta)
             )
         ]),
+        Line::from(""),
+        Line::from(vec![
+            Span::styled(
+                "Controls:",
+                Style::default().fg(Color::Yellow)
+            )
+        ]),
+        Line::from("ENTER or SPACE - Run simulation"),
+        Line::from("PageUp/PageDown or n/p - Browse simulations"),
+        Line::from("'s' - Single simulation mode"),
+        Line::from("'e' - Inject entropy"),
+        Line::from("'q' - Quit"),
     ];
 
     let metrics_paragraph = Paragraph::new(metrics_text)
@@ -1565,17 +1626,34 @@ fn main() -> io::Result<()> {
     loop {
         terminal.draw(|f| ui(f, &metrics.lock().unwrap()))?;
 
+        // Process pure events
+        {
+            let mut queue = EVENT_QUEUE.lock().unwrap();
+            while let Some(event) = queue.events.pop_front() {
+                // Handle pure events immediately
+                match event {
+                    // Handle different event types
+                    _ => {},
+                }
+            }
+        }
+
+        // Check for key events
         if event::poll(Duration::from_millis(16))? {
             if let Event::Key(key) = event::read()? {
                 match key.code {
                     KeyCode::Char('q') => break,
-                    KeyCode::Char(' ') => {
-                        simulation_mode = true;
-                        let metrics_clone = Arc::clone(&metrics);
-                        if metrics.lock().unwrap().active_simulations.is_empty() {
-                            initialize_parallel_simulations(metrics_clone);
+                    KeyCode::Enter | KeyCode::Char(' ') => {
+                        if !simulation_mode {
+                            // First press - start simulation
+                            simulation_mode = true;
+                            let metrics_clone = Arc::clone(&metrics);
+                            if metrics.lock().unwrap().active_simulations.is_empty() {
+                                initialize_parallel_simulations(metrics_clone);
+                            }
                         } else {
-                            run_parallel_simulations(metrics_clone);
+                            // Subsequent presses - trigger a tick
+                            run_parallel_simulations(Arc::clone(&metrics));
                         }
                     },
                     KeyCode::Char('s') => {
