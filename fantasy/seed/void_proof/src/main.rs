@@ -50,7 +50,11 @@ impl EventQueue {
     }
 
     fn spawn_workers(&mut self, metrics: Arc<Mutex<TimelineMetrics>>) {
-        // Workers just work. No bootstrap check.
+        // Only spawn workers if we haven't already
+        if !self.workers.is_empty() {
+            return;
+        }
+
         let events = Arc::new(Mutex::new(VecDeque::new()));
         {
             let mut shared_events = events.lock().unwrap();
@@ -61,6 +65,7 @@ impl EventQueue {
         let state_pool = Arc::clone(&self.state_pool);
         let running = Arc::clone(&self.running);
         
+        // Create fixed worker pool - one per CPU core
         for _ in 0..self.workers.capacity() {
             let events = Arc::clone(&events);
             let metrics = Arc::clone(&metrics);
@@ -71,6 +76,7 @@ impl EventQueue {
             let worker = thread::spawn(move || {
                 while running.load(Ordering::SeqCst) {
                     if let Some(event) = events.lock().unwrap().pop_front() {
+                        // Each worker handles time dilation for whatever timeline it's processing
                         match event {
                             TimelineEvent::Transition(id, maybe_state) => {
                                 let state = if let Some(state) = maybe_state {
@@ -977,16 +983,28 @@ mod tests {
     fn test_parallel_simulation_tracking() {
         let metrics = Arc::new(Mutex::new(TimelineMetrics::new()));
         
-        // Start parallel simulations
-        let metrics_clone = Arc::clone(&metrics);
-        metrics_clone.lock().unwrap().parallel_timelines = 25;  // Set this FIRST
+        // Initialize workers FIRST
+        EVENT_QUEUE.lock().unwrap().spawn_workers(Arc::clone(&metrics));
         
-        run_parallel_simulations(metrics_clone);
+        // Create the simulations FIRST
+        {
+            let mut m = metrics.lock().unwrap();
+            m.parallel_timelines = 25;
+            for _ in 0..25 {
+                m.add_simulation();  // Create the simulation entries
+            }
+        }
+        
+        // Initialize timelines
+        initialize_parallel_simulations(Arc::clone(&metrics));
+        
+        // Now run simulations
+        run_parallel_simulations(Arc::clone(&metrics));
         
         loop {
             let metrics = metrics.lock().unwrap();
             if metrics.active_simulations.iter()
-                .take(25)  // Just the initial singularities
+                .take(25)
                 .all(|sim| !sim.is_empty()) {
                 
                 assert!(metrics.parallel_timelines >= 25, 
@@ -994,12 +1012,16 @@ mod tests {
                 
                 assert_eq!(metrics.active_simulations.len(), 25,
                     "Should have 25 active simulation tracks");
-                
+                // Cleanup and return success!
+                EVENT_QUEUE.lock().unwrap().shutdown();
                 return;  // Test passes once ALL original singularities have transitioned
             }
             drop(metrics);
             thread::sleep(Duration::from_millis(1));
         }
+        
+        // Cleanup
+        EVENT_QUEUE.lock().unwrap().shutdown();
     }
 
     #[test]
@@ -1169,11 +1191,8 @@ mod tests {
     fn test_timeline_preservation_under_concurrent_load() {
         let metrics = Arc::new(Mutex::new(TimelineMetrics::new()));
         
-        // Set up parallel timeline count
-        {
-            let mut m = metrics.lock().unwrap();
-            m.parallel_timelines = 5;
-        }
+        // Initialize workers ONCE at start
+        EVENT_QUEUE.lock().unwrap().spawn_workers(Arc::clone(&metrics));
         
         // Initialize the timelines properly
         initialize_parallel_simulations(Arc::clone(&metrics));
@@ -1262,22 +1281,15 @@ fn initialize_parallel_simulations(metrics: Arc<Mutex<TimelineMetrics>>) {
             }
         }
     }
-    
-    queue.spawn_workers(Arc::clone(&metrics));
 }
 
 fn run_parallel_simulations(metrics: Arc<Mutex<TimelineMetrics>>) {
     let mut queue = EVENT_QUEUE.lock().unwrap();
-    
-    {
-        let metrics = metrics.lock().unwrap();
-        // JUST MAKE EVERYTHING FUCKING TICK
-        for (id, _) in metrics.active_simulations.iter().enumerate() {
-            queue.events.push_back(TimelineEvent::Transition(id, None));
-        }
+    let metrics = metrics.lock().unwrap();
+    // JUST MAKE EVERYTHING FUCKING TICK
+    for (id, _) in metrics.active_simulations.iter().enumerate() {
+        queue.events.push_back(TimelineEvent::Transition(id, None));
     }
-    
-    queue.spawn_workers(Arc::clone(&metrics));
 }
 
 fn project_timeline_to_sphere(timeline: &TimelineState, depth: f64, theta: f64) -> Vec<(f64, f64, f64)> {
