@@ -4,6 +4,10 @@ use std::time::{Duration, Instant};
 use std::thread;
 use std::sync::{Arc, Mutex};
 use std::collections::VecDeque;
+use std::sync::atomic::{AtomicUsize, Ordering, AtomicBool};
+use once_cell::sync::Lazy;
+use num_cpus;
+
 use crossterm::{
     event::{self, Event, KeyCode},
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
@@ -15,6 +19,98 @@ use ratatui::{
     widgets::canvas::{Canvas, Points},
     Terminal, Frame, backend::CrosstermBackend,
 };
+
+static EVENT_QUEUE: Lazy<Arc<Mutex<EventQueue>>> = Lazy::new(|| {
+    Arc::new(Mutex::new(EventQueue::new(num_cpus::get())))
+});
+
+#[derive(Debug, Clone)]
+enum TimelineEvent {
+    Transition(usize, Arc<TimelineState>),  // (timeline_id, isolated_state)
+    Branch(usize, Arc<TimelineState>),      // (parent_id, new_isolated_state)
+    Pattern(usize, PatternType, Arc<TimelineState>)  // (timeline_id, pattern, state)
+}
+
+struct EventQueue {
+    events: VecDeque<TimelineEvent>,
+    workers: Vec<thread::JoinHandle<()>>,
+    timeline_count: Arc<AtomicUsize>,
+    state_pool: Arc<Mutex<Vec<Arc<TimelineState>>>>, // Keep isolated states
+}
+
+impl EventQueue {
+    fn new(worker_count: usize) -> Self {
+        Self {
+            events: VecDeque::new(),
+            workers: Vec::with_capacity(worker_count),
+            timeline_count: Arc::new(AtomicUsize::new(0)),
+            state_pool: Arc::new(Mutex::new(Vec::new())),
+        }
+    }
+
+    fn spawn_workers(&mut self, metrics: Arc<Mutex<TimelineMetrics>>) {
+        for _ in 0..self.workers.capacity() {
+            let events = Arc::new(Mutex::new(VecDeque::new())); // Create new queue per worker
+            let count = Arc::clone(&self.timeline_count);
+            let metrics = Arc::clone(&metrics);
+            let state_pool = Arc::clone(&self.state_pool);
+            
+            // Move events queue into worker
+            let worker = thread::spawn(move || {
+                loop {
+                    let event = events.lock().unwrap().pop_front();
+
+                    match event {
+                        Some(TimelineEvent::Transition(id, state)) => {
+                            // Process transition in isolated memory
+                            let mut new_state = (*state).clone();
+                            new_state.transition();
+                            
+                            // Store new state and queue any resulting events
+                            let mut pool = state_pool.lock().unwrap();
+                            pool.push(Arc::new(new_state));
+                            
+                            metrics.lock().unwrap().record_transition(id as u32, pool.len());
+                        },
+                        Some(TimelineEvent::Branch(parent_id, parent_state)) => {
+                            // Create new isolated timeline
+                            let new_id = count.fetch_add(1, Ordering::SeqCst);
+                            let mut new_state = TimelineState::new_with_state(
+                                parent_state.memory.get_state()
+                            );
+                            
+                            // Store and queue transition
+                            let state_arc = Arc::new(new_state);
+                            state_pool.lock().unwrap().push(Arc::clone(&state_arc));
+                            
+                            let mut events = events.lock().unwrap();
+                            events.push_back(TimelineEvent::Transition(new_id, state_arc));
+                        },
+                        Some(TimelineEvent::Pattern(id, pattern_type, state)) => {
+                            // Process pattern detection asynchronously
+                            if let Some(pattern) = state.detect_quantum_structure() {
+                                let mut metrics = metrics.lock().unwrap();
+                                metrics.record_pattern(id, pattern);
+                            }
+                        },
+                        _ => thread::sleep(Duration::from_millis(1))
+                    }
+                }
+            });
+            
+            self.workers.push(worker);
+        }
+    }
+
+    fn get_timeline_states(&self, timeline_id: usize) -> Vec<Option<bool>> {
+        self.state_pool.lock()
+            .unwrap()
+            .iter()
+            .filter(|state| state.id.load(Ordering::SeqCst) == timeline_id)
+            .map(|state| state.memory.get_state())
+            .collect()
+    }
+}
 
 #[derive(Debug, Clone, PartialEq)]
 enum PatternType {
@@ -44,7 +140,33 @@ enum QuantumPattern {
     }
 }
 
-#[derive(Default, Clone)]
+impl QuantumPattern {
+    fn stability(&self) -> f64 {
+        match self {
+            QuantumPattern::Hexagonal { stability, .. } => *stability,
+            QuantumPattern::Dodecahedral { coherence, .. } => *coherence,
+            QuantumPattern::TransitionState { progress, .. } => *progress,
+        }
+    }
+}
+
+impl From<QuantumPattern> for PatternType {
+    fn from(pattern: QuantumPattern) -> Self {
+        match pattern {
+            QuantumPattern::Hexagonal { stability, .. } => {
+                if stability > 0.8 { PatternType::OrderStabilization }
+                else { PatternType::OrderFormation }
+            },
+            QuantumPattern::Dodecahedral { coherence, .. } => {
+                if coherence > 0.8 { PatternType::OrderStabilization }
+                else { PatternType::OrderFormation }
+            },
+            QuantumPattern::TransitionState { .. } => PatternType::Emergence,
+        }
+    }
+}
+
+#[derive(Debug, Default, Clone)]
 struct CoherenceMetrics {
     disorder_to_order_transitions: u64,
     order_to_disorder_transitions: u64,
@@ -200,28 +322,77 @@ impl TimelineMetrics {
             ));
         }
     }
+
+    fn record_pattern(&mut self, timeline_id: usize, pattern: QuantumPattern) {
+        if let Some(sim) = self.active_simulations.get_mut(timeline_id) {
+            sim.push((sim.len() as f64, pattern.stability()));
+        }
+    }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum MemoryCoherenceState {
+    Classical,  // Thread-safe, boring
+    Quantum,    // Unsafe, spicy
+    Superposition, // Both safe and unsafe simultaneously because why not
+}
+
+/// TODO: Add quantum coherence collapse trigger that can dynamically switch memory 
+/// between thread-safe and unsafe states mid-simulation. This would let us observe
+/// the transition between classical and quantum behavior in real-time.
+/// 
+/// Bonus points: Implement MemoryCoherenceState::Superposition where memory is
+/// simultaneously safe and unsafe until observed. This is definitely fine and 
+/// won't cause the universe to divide by zero.
+/// 
+/// Note: If this actually works, please notify the physics department. They'll 
+/// want to see this. Or maybe they won't. Both until observed.
+#[derive(Debug)]
 struct UnstableMemory {
-    state: UnsafeCell<Option<bool>>
+    state: Arc<(AtomicBool, AtomicBool)>,
+    // coherence_state: AtomicCell<MemoryCoherenceState>, // Uncomment when reality is ready
 }
 
 impl UnstableMemory {
     fn new() -> Self {
-        UnstableMemory {
-            state: UnsafeCell::new(None)
+        Self {
+            state: Arc::new((AtomicBool::new(false), AtomicBool::new(false)))
         }
     }
 
+    // Keep transition unsafe because QUANTUM FLUCTUATIONS
     unsafe fn transition(&self) {
         if rand::random::<bool>() {
-            *self.state.get() = Some(rand::random::<bool>());
+            self.state.0.store(true, Ordering::SeqCst);
+            self.state.1.store(rand::random::<bool>(), Ordering::SeqCst);
+        }
+    }
+
+    // These can be safe because they're just reading/writing
+    fn get_state(&self) -> Option<bool> {
+        if self.state.0.load(Ordering::SeqCst) {
+            Some(self.state.1.load(Ordering::SeqCst))
+        } else {
+            None
+        }
+    }
+
+    fn set_state(&self, state: Option<bool>) {
+        match state {
+            Some(value) => {
+                self.state.0.store(true, Ordering::SeqCst);
+                self.state.1.store(value, Ordering::SeqCst);
+            }
+            None => {
+                self.state.0.store(false, Ordering::SeqCst);
+            }
         }
     }
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 struct TimelineState {
+    id: Arc<AtomicUsize>,
     memory: Arc<UnstableMemory>,
     /// Timestamp when this timeline branch was created
     /// Currently unused - will be used for coherence vector calculations
@@ -247,6 +418,7 @@ fn count_timelines(timeline: &TimelineState) -> usize {
 impl TimelineState {
     fn new() -> Self {
         Self {
+            id: Arc::new(AtomicUsize::new(0)),
             memory: Arc::new(UnstableMemory::new()),
             spawn_time: Instant::now(),
             child_timelines: Vec::new(),
@@ -259,11 +431,10 @@ impl TimelineState {
     }
 
     fn new_with_state(initial_state: Option<bool>) -> Self {
-        let mut memory = UnstableMemory::new();
-        unsafe {
-            *memory.state.get() = initial_state;  // Start with parent's state
-        }
+        let memory = UnstableMemory::new();
+        memory.set_state(initial_state);
         Self {
+            id: Arc::new(AtomicUsize::new(0)),
             memory: Arc::new(memory),
             spawn_time: Instant::now(),
             child_timelines: Vec::new(),
@@ -278,17 +449,8 @@ impl TimelineState {
     fn calculate_local_order(&self) -> f64 {
         const MIN_PATTERN_LENGTH: usize = 3;
         
-        // Collect state observations from this timeline and all children
-        let mut states = Vec::new();
-        unsafe {
-            // Get current timeline's state
-            states.push(*self.memory.state.get());
-            
-            // Get states from child timelines
-            for child in &self.child_timelines {
-                states.push(*child.memory.state.get());
-            }
-        }
+        // Get states from event queue instead of direct child access
+        let states = EVENT_QUEUE.lock().unwrap().get_timeline_states(self.id.load(Ordering::SeqCst));
         
         // Only calculate order when we have enough observations
         if states.len() < MIN_PATTERN_LENGTH {
@@ -335,64 +497,40 @@ impl TimelineState {
     /// within finite computational resources.
     fn transition(&mut self) {
         let start = Instant::now();
+        let id = self.id.load(Ordering::SeqCst);
         
-        // Calculate time dilation based on TOTAL timelines
-        // Because ANY timeline = entropy = dilation!
+        // Calculate time dilation (keep this part!)
         let total_timelines = count_timelines(self);
-        let dilation_factor = if total_timelines > 1 { // If we have ANY branches
-            (total_timelines as f64 * 10e88).log2() + 1.0  // Sub-Planck PRECISION in a simulated universe is very interesting...
-                                                           // we use time dilation to make it work.
+        let dilation_factor = if total_timelines > 1 { // If we have ANY branche
+            (total_timelines as f64 * 10e88).log2() + 1.0 // Sub-Planck PRECISION in a simulated universe is very interesting... we use time dilation to make it work.
         } else {
-            1.0  // Tick tock goes the quantum clock... only on a single timeline
+            1.0
         };
-        let old_order = self.local_order;
         
         unsafe {
-            let _old_state = *self.memory.state.get();
+            let old_state = self.memory.get_state();
             self.memory.transition();
-            // Just let time flow gently...
-            self.memory.transition();
-            if let Some(state) = *self.memory.state.get() {
-                self.child_timelines.push(Arc::new(TimelineState::new_with_state(Some(state))));
-            }
-            let new_state = *self.memory.state.get();
             
-            // Track order/disorder transitions
-            let was_ordered = old_order > 0.5;
-            let is_ordered = self.calculate_local_order() > 0.5;
-            
-            match (was_ordered, is_ordered) {
-                (false, true) => self.metrics.disorder_to_order_transitions += 1,
-                (true, false) => self.metrics.order_to_disorder_transitions += 1,
-                (true, true) => {
-                    if let Some((last_time, _)) = self.metrics.branch_points.last() {
-                        self.metrics.stable_order_duration.push(start - *last_time);
-                    }
-                },
-                _ => ()
+            if let Some(state) = self.memory.get_state() {
+                // Instead of directly creating child timelines, queue events
+                EVENT_QUEUE.lock().unwrap().events.push_back(
+                    TimelineEvent::Branch(id, Arc::new(TimelineState::new_with_state(Some(state))))
+                );
             }
-
-            // Branch and track
-            if let Some(state) = new_state {
-                let new_branch = TimelineState::new_with_state(Some(state));
-                self.child_timelines.push(Arc::new(new_branch));
-                self.metrics.branch_points.push((start, self.child_timelines.len()));
+            
+            // Queue pattern detection as an event
+            if let Some(pattern) = self.detect_quantum_structure() {
+                EVENT_QUEUE.lock().unwrap().events.push_back(
+                    TimelineEvent::Pattern(id, pattern.into(), Arc::new(self.clone()))
+                );
             }
         }
 
-        // Update metrics
-        self.local_order = self.calculate_local_order();
-        self.local_entropy = if self.child_timelines.len() > 1 {
-            (self.child_timelines.len() as f64).log2()  // Pure quantum entropy
-        } else {
-            (self.child_timelines.len() as f64).log2()
-        };
-        
-        // Apply dilation based on THIS timeline's complexity
-        if self.child_timelines.len() > 1 {
+        // Keep the beautiful time dilation
+        if total_timelines > 1 {
             let elapsed = start.elapsed();
             thread::sleep(Duration::from_nanos(
-                (elapsed.as_nanos() as f64 * dilation_factor) as u64  // PROPER time dilation with sub-Planck precision!
+                (elapsed.as_nanos() as f64 * dilation_factor) as u64
             ));
         }
     }
@@ -415,7 +553,7 @@ impl TimelineState {
 
     fn track_pattern_formation(&mut self, time: Instant, old_state: Option<bool>) {
         let pattern_type = unsafe {  // We're already in an unsafe context
-            match (old_state, *self.memory.state.get()) {
+            match (old_state, self.memory.get_state()) {
                 (None, Some(_)) => PatternType::Emergence,
                 (Some(false), Some(true)) => PatternType::OrderFormation,
                 (Some(true), Some(true)) => PatternType::OrderStabilization,
@@ -1018,20 +1156,31 @@ fn ui<B: Backend>(f: &mut Frame<B>, metrics: &TimelineMetrics) {
     // CMB Visualization
     let canvas = Canvas::default()
         .marker(symbols::Marker::Braille)
+        .x_bounds([-50.0, 50.0])
+        .y_bounds([-25.0, 25.0])
         .paint(|ctx| {
-            for sim in &metrics.active_simulations {
-                if let Some(_) = sim.last() {
-                    let timeline = TimelineState::new();
-                    let points = project_timeline_to_sphere(&timeline, 0.0, 0.0);
-                    for (x, y, z) in points {
-                        let temp = (z + 1.0) / 2.0;
-                        let color = match temp {
-                            t if t < 0.2 => Color::Rgb(0, 0, 255),  // Cold
-                            t if t < 0.4 => Color::Rgb(0, 255, 255),
-                            t if t < 0.6 => Color::Rgb(255, 255, 0),
-                            t if t < 0.8 => Color::Rgb(255, 165, 0),
-                            _ => Color::Rgb(255, 0, 0),  // Hot
+            // For each active simulation
+            for (sim_index, sim) in metrics.active_simulations.iter().enumerate() {
+                if let Some(&(_, count)) = sim.last() {
+                    // Project the actual timeline states
+                    for (transition, count) in sim {
+                        let x = *transition as f64 / 2.0;  // Spread out horizontally
+                        let y = count.log2();  // Height based on actual complexity
+                        
+                        // Color based on actual quantum coherence
+                        let coherence = metrics.coherence_transitions
+                            .last()
+                            .map(|(_, prob)| *prob)
+                            .unwrap_or(0.0);
+                        
+                        let color = match coherence {
+                            c if c > 0.8 => Color::Rgb(0, 255, 0),    // High coherence
+                            c if c > 0.6 => Color::Rgb(64, 192, 64),
+                            c if c > 0.4 => Color::Rgb(128, 128, 255),
+                            c if c > 0.2 => Color::Rgb(192, 64, 192),
+                            _ => Color::Rgb(255, 0, 255),             // Low coherence
                         };
+                        
                         ctx.draw(&Points {
                             coords: &[(x, y)],
                             color,
@@ -1040,7 +1189,9 @@ fn ui<B: Backend>(f: &mut Frame<B>, metrics: &TimelineMetrics) {
                 }
             }
         })
-        .block(Block::default().title("Entropy Distribution (CMB)").borders(Borders::ALL));
+        .block(Block::default()
+            .title("Quantum Pattern Formation (CMB)")
+            .borders(Borders::ALL));
 
     // Combined Entropy/Order Graph with distribution bands
     let mut datasets = Vec::new();
