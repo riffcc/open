@@ -1,0 +1,410 @@
+warning: unused variable: `time`
+   --> src/main.rs:372:22
+    |
+372 |         if let Some((time, branches)) = timeline.metrics.branch_points.last() {
+    |                      ^^^^ help: if this is intentional, prefix it with an underscore: `_time`
+    |
+    = note: `#[warn(unused_variables)]` on by default
+
+warning: unused variable: `time`
+   --> src/main.rs:372:22
+    |
+372 |         if let Some((time, branches)) = timeline.metrics.branch_points.last() {
+    |                      ^^^^ help: if this is intentional, prefix it with an underscore: `_time`
+    |
+    = note: `#[warn(unused_variables)]` on by default
+
+warning: variable does not need to be mutable
+   --> src/main.rs:396:17
+    |
+396 |             let mut timeline = TimelineState::new();
+    |                 ----^^^^^^^^
+    |                 |
+    |                 help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` on by default
+
+warning: unused variable: `old_state`
+   --> src/main.rs:590:17
+    |
+590 |             let old_state = self.memory.get_state();
+    |                 ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_old_state`
+
+warning: variable does not need to be mutable
+   --> src/main.rs:396:17
+    |
+396 |             let mut timeline = TimelineState::new();
+    |                 ----^^^^^^^^
+    |                 |
+    |                 help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` on by default
+
+warning: unused variable: `old_state`
+   --> src/main.rs:590:17
+    |
+590 |             let old_state = self.memory.get_state();
+    |                 ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_old_state`
+
+warning: unused variable: `pattern_type`
+   --> src/main.rs:627:13
+    |
+627 |         let pattern_type = unsafe {  // We're already in an unsafe context
+    |             ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_pattern_type`warning: unused variable: `pattern_type`
+   --> src/main.rs:627:13
+    |
+627 |         let pattern_type = unsafe {  // We're already in an unsafe context
+    |             ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_pattern_type`
+
+warning
+
+warning: unnecessary `unsafe` block
+   --> src/main.rs:627:28
+    |
+627 |         let pattern_type = unsafe {  // We're already in an unsafe context
+    |                            ^^^^^^ unnecessary `unsafe` block
+    |
+    : unnecessary `unsafe` block
+   --> src/main.rs:627:28
+    |
+627 |         let pattern_type = unsafe {  // We're already in an unsafe context
+    |                            ^^^^^^ unnecessary `unsafe` block
+    |
+    = note: `#[warn(unused_unsafe)]` on by default
+
+warning= note: `#[warn(unused_unsafe)]` on by default
+
+warning: variable does not need to be mutable
+   --> src/main.rs:706:13
+    |
+706 |         let mut ordered_timelines: Vec<_> = self.child_timelines.iter()
+    |             ----^^^^^^^^^^^^^^^^^
+    |             |
+    : variable does not need to be mutable
+   --> src/main.rs:706:13
+    |
+706 |         let mut ordered_timelines: Vec<_> = self.child_timelines.iter()
+    |             ----^^^^^^^^^^^^^^^^^
+    |             |
+    |             help: remove this `mut`
+
+|             help: remove this `mut`
+
+warning: value assigned to `found_branch` is never read
+    --> src/main.rs:1030:29
+     |
+1030 | ...                   found_branch = true;
+     |                       ^^^^^^^^^^^^
+     |
+     = help: maybe it is overwritten before being read?
+     = note: `#[warn(unused_assignments)]` on by default
+
+warning: value assigned to `found_branch` is never read
+    --> src/main.rs:1030:29
+     |
+1030 | ...                   found_branch = true;
+     |                       ^^^^^^^^^^^^
+     |
+     = help: maybe it is overwritten before being read?
+     = note: `#[warn(unused_assignments)]` on by default
+
+warning: unused variable: `z`
+    --> src/main.rs:1309:32
+     |
+1309 |                     for (x, y, z) in points {warning: unused variable: `z`
+    --> src/main.rs:1309:32
+     |
+1309 |                     for (x, y, z) in points {
+     |                                ^ help: if this is intentional, prefix it with an underscore: `_z`
+
+
+     |                                ^ help: if this is intentional, prefix it with an underscore: `_z`
+
+warning: fields `0`, `1`, and `2` are never read
+  --> src/main.rs:30:13
+   |
+30 |warning: fields `0`, `1`, and `2` are never read
+  --> src/main.rs:30:13
+   |
+30 |     Pattern(usize, PatternType, Arc<TimelineState>)  
+   |     ------- ^^^^^  ^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^
+   |     |
+   |     fields in this variant
+   |
+   = note: `TimelineEvent` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis     Pattern(usize, PatternType, Arc<TimelineState>)  
+   |     ------- ^^^^^  ^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^
+   |     |
+   |     fields in this variant
+   |
+   = note: `TimelineEvent` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+   = note: `#[warn(dead_code)]` on by default
+help: consider changing the fields to be of unit type to suppress this warning while preserving the field numbering, or remove the fields
+   |
+30 |     Pattern((), (), ())  
+   |             ~~
+   = note: `#[warn(dead_code)]` on by default
+help: consider changing the fields to be of unit type to suppress this warning while preserving the field numbering, or remove the fields
+   |
+30 |     Pattern((), (), ())  
+   |             ~~  ~~  ~~
+
+  ~~  ~~
+
+warning: variant `Branch` is never constructed
+  --> src/main.rs:29:5
+   |
+27 | enum TimelineEvent {
+   |      ------------- variant in this enum
+28 | warning: variant `Branch` is never constructed
+  --> src/main.rs:29:5
+   |
+27 | enum TimelineEvent {
+   |      ------------- variant in this enum
+28 |     Transition(usize, Option<Arc<TimelineState>>),  // (timeline_id, maybe_state)
+29 |     Branch(usize, Arc<TimelineState>),      
+   |     ^^^^^^
+   |
+   = note: `TimelineEvent` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+    Transition(usize, Option<Arc<TimelineState>>),  // (timeline_id, maybe_state)
+29 |     Branch(usize, Arc<TimelineState>),      
+   |     ^^^^^^
+   |
+   = note: `TimelineEvent` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warningwarning: methods `process_event` and `shutdown` are never used
+   --> src/main.rs:132:8
+    |
+41  | impl EventQueue {
+    | --------------- methods in this implementation
+...
+132 | : methods `process_event` and `shutdown` are never used
+   --> src/main.rs:132:8
+    |
+41  | impl EventQueue {
+    | --------------- methods in this implementation
+...
+132 |     fn process_event(&mut self, event: TimelineEvent, metrics: &mut TimelineMetrics) {
+    |        ^^^^^^^^^^^^^
+...
+160 |     fn shutdown(&self) {
+    |        ^^^^^^^^
+
+    fn process_event(&mut self, event: TimelineEvent, metrics: &mut TimelineMetrics) {
+    |        ^^^^^^^^^^^^^
+...
+160 |     fn shutdown(&self) {
+    |        ^^^^^^^^
+
+warning: variant `Chaos` is never constructed
+   --> src/main.rs:174:5
+    |
+170 warning: variant `Chaos` is never constructed
+   --> src/main.rs:174:5
+    |
+170 | enum PatternType {
+    |      ----------- variant in this enum
+...
+174 |     Chaos
+    |     ^^^^^
+    |
+    = note: `PatternType` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+| enum PatternType {
+    |      ----------- variant in this enum
+...
+174 |     Chaos
+    |     ^^^^^
+    |
+    = note: `PatternType` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: variant `TransitionState` is never constructed
+
+warning: variant `TransitionState` is never constructed
+   --> src/main.rs:190:5
+    |
+178 | enum QuantumPattern {
+    |      -------------- variant in this enum
+...
+190 |     TransitionState {
+   --> src/main.rs:190:5
+    |
+178 | enum QuantumPattern {
+    |      -------------- variant in this enum
+...
+190 |     TransitionState {
+    |     ^^^^^^^^^^^^^^^
+    |
+    = note: `QuantumPattern` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: method `stability` is never used
+   --> src/main.rs:198:8
+        |     ^^^^^^^^^^^^^^^
+    |
+    = note: `QuantumPattern` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: method `stability` is never used
+   --> src/main.rs:198:8
+    |
+197 | impl QuantumPattern {
+    | ------------------- method in this implementation
+198 |     fn stability(&self) -> f64 {
+    |        ^^^^^^^^^
+
+|
+197 | impl QuantumPattern {
+    | ------------------- method in this implementation
+198 |     fn stability(&self) -> f64 {
+    |        ^^^^^^^^^
+
+warning: fields `disorder_to_order_transitions`, `order_to_disorder_transitions`, `stable_order_duration`, `branch_points`, `pattern_formations`, and `branch_patterns` are never read
+   --> src/main.rs:225:5
+    |
+224 | struct CoherenceMetrics {
+    |        warning: fields `disorder_to_order_transitions`, `order_to_disorder_transitions`, `stable_order_duration`, `branch_points`, `pattern_formations`, and `branch_patterns` are never read
+   --> src/main.rs:225:5
+    |
+224 | struct CoherenceMetrics {
+    |        ---------------- fields in this struct
+225 |     disorder_to_order_transitions: u64,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+226 |     order_to_disorder_transitions: u64,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+227 |     stable_order_duration: Vec<Duration>,
+---------------- fields in this struct
+225 |     disorder_to_order_transitions: u64,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+226 |     order_to_disorder_transitions: u64,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+227 |     stable_order_duration: Vec<Duration>,
+    |     ^^^^^^^^^^^^^^^^^^^^^
+228 |     branch_points: Vec<(Instant, usize)>,
+    |     ^^^^^^^^^^^^^
+229 |     pattern_formations: Vec<(Instant, QuantumPattern)>,
+    |     ^^^^^^^^^^^^^^^^^^
+230 |     branch_patterns: Vec<PatternType>,
+    |    |     ^^^^^^^^^^^^^^^^^^^^^
+228 |     branch_points: Vec<(Instant, usize)>,
+    |     ^^^^^^^^^^^^^
+229 |     pattern_formations: Vec<(Instant, QuantumPattern)>,
+    |     ^^^^^^^^^^^^^^^^^^
+230 |     branch_patterns: Vec<PatternType>,
+    |     ^^^^^^^^^^^^^^^
+    |
+    = note: `CoherenceMetrics` has derived impls for the traits `Default`, `Clone`, and `Debug`, but these are intentionally ignored during dead code analysis
+
+     ^^^^^^^^^^^^^^^
+    |
+    = note: `CoherenceMetrics` has derived impls for the traits `Default`, `Clone`, and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: methods `record_coherence`, `record_pattern`, and `step_simulation` are never used
+   --> src/main.rs:356:8warning: methods `record_coherence`, `record_pattern`, and `step_simulation` are never used
+   --> src/main.rs:356:8
+    |
+250 | impl TimelineMetrics {
+    | -------------------- methods in this implementation
+...
+356 |     fn record_coherence(&mut self, timeline: &TimelineState) {
+    |
+    |
+250 | impl TimelineMetrics {
+    | -------------------- methods in this implementation
+...
+356 |     fn record_coherence(&mut self, timeline: &TimelineState) {
+    |        ^^^^^^^^^^^^^^^^
+...
+380 |     fn record_pattern(&mut self, timeline_id: usize, pattern: QuantumPattern) {
+    |        ^^^^^^^^^^^^^^
+...
+394 |     fn step_simulation(&mut self, sim_id: usize) {
+    |        ^^^^^^^^^^^^^^^
+
+        ^^^^^^^^^^^^^^^^
+...
+380 |     fn record_pattern(&mut self, timeline_id: usize, pattern: QuantumPattern) {
+    |        ^^^^^^^^^^^^^^
+...
+394 |     fn step_simulation(&mut self, sim_id: usize) {
+    |        ^^^^^^^^^^^^^^^
+
+warning: enum `MemoryCoherenceState` is never used
+   --> src/main.rs:419:6
+    |
+419 | enum MemoryCoherenceState {
+    |warning: enum `MemoryCoherenceState` is never used
+   --> src/main.rs:419:6
+    |
+419 | enum MemoryCoherenceState {
+    |      ^^^^^^^^^^^^^^^^^^^^
+
+      ^^^^^^^^^^^^^^^^^^^^
+
+warning: fields `spawn_time`, `changes`, and `metrics` are never read
+   --> src/main.rs:482:5
+    |
+479 | struct TimelineState {
+    |        ------------- fields in this struct
+...
+482 |     spawn_time: Instant,
+    |     ^^^^^^^^^^
+...warning: fields `spawn_time`, `changes`, and `metrics` are never read
+   --> src/main.rs:482:5
+    |
+479 | struct TimelineState {
+    |        ------------- fields in this struct
+...
+482 |     spawn_time: Instant,
+    |     ^^^^^^^^^^
+...
+487 |     changes: Vec<Arc<TimelineState>>,
+    |     ^^^^^^^
+488 |     metrics: CoherenceMetrics,
+    |     ^^^^^^^
+    |
+    = 
+487 |     changes: Vec<Arc<TimelineState>>,
+    |     ^^^^^^^
+488 |     metrics: CoherenceMetrics,
+    |     ^^^^^^^
+    |
+    = note: `TimelineState` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+note: `TimelineState` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: methods `calculate_coherence_probability`, `track_pattern_formation`, and `detect_hexagonal_structure` are never used
+   --> src/main.rs:610:8
+    |
+497 | impl TimelineState {
+warning: methods `calculate_coherence_probability`, `track_pattern_formation`, and `detect_hexagonal_structure` are never used
+   --> src/main.rs:610:8
+    |
+497 | impl TimelineState {
+    | ------------------ methods in this implementation
+...
+610 |     fn calculate_coherence_probability(&self) -> f64 {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+626 |     fn track_pattern_formation(&mut self, time: Instant, old_state: Option<bool>) {    | ------------------ methods in this implementation
+...
+610 |     fn calculate_coherence_probability(&self) -> f64 {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+626 |     fn track_pattern_formation(&mut self, time: Instant, old_state: Option<bool>) {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^
+...
+642 |     fn detect_hexagonal_structure(&self) -> Option<QuantumPattern> {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+
+    |        ^^^^^^^^^^^^^^^^^^^^^^^
+...
+642 |     fn detect_hexagonal_structure(&self) -> Option<QuantumPattern> {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: `void_proof` (bin "void_proof" test) generated 19 warnings (run `cargo fix --bin "void_proof" --tests` to apply 2 suggestions)
+warning: `void_proof` (bin "void_proof" test) generated 19 warnings (run `cargo fix --bin "void_proof" --tests` to apply 2 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.02s
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.02s
+     Running unittests src/main.rs (target/debug/deps/void_proof-df6b93728751ad1f)
+     Running unittests src/main.rs (target/debug/deps/void_proof-df6b93728751ad1f)
+error: test failed, to rerun pass `--bin void_proof`
+error: test failed, to rerun pass `--bin void_proof`
